@@ -146,7 +146,3 @@ function handleErrors(err: any): any {
 async function cnosQuery(sql: string, options?: any) {
   return doRequest('/query', sql, options);
 }
-
-async function getDatabases() {
-  cnosQuery("SHOW DATABASES")
-}

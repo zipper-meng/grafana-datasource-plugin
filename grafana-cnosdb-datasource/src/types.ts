@@ -1,4 +1,4 @@
-import { Column, DataQuery, DataSourceJsonData, QueryResultMeta, TableData } from '@grafana/data';
+import { DataQuery, DataSourceJsonData } from '@grafana/data';
 
 export interface CnosQuery extends DataQuery {
   rawQuery: boolean;
@@ -30,13 +30,4 @@ export interface CnosDataSourceOptions extends DataSourceJsonData {
  */
 export interface SecureJsonData {
   apiKey?: string;
-}
-
-class CnosResponseResult {
-  statement_id
-}
-
-export class CnosResponse {
-  results: CnosResponseResult[];
-  
 }

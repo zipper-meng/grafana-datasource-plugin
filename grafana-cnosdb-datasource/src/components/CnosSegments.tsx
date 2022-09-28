@@ -1,5 +1,4 @@
-import { cx, css } from '@emotion/css';
-import React, { useCallback } from 'react';
+import React  from 'react';
 
 import { SelectableValue } from '@grafana/data';
 import { ActionMeta, InlineLabel, SegmentSection, Select } from '@grafana/ui';
@@ -16,20 +15,20 @@ const columnOptions: SelectableValue[] = [
   { label: 'time', value: 'time' },
   { label: 'visibility', value: 'visibility' },
 ];
-const fieldKeyOptions: SelectableValue[] = [
-  { label: 'pressure', value: 'pressure' },
-  { label: 'temperature', value: 'temperature' },
-  { label: 'visibility', value: 'visibility' },
-];
+// const fieldKeyOptions: SelectableValue[] = [
+//   { label: 'pressure', value: 'pressure' },
+//   { label: 'temperature', value: 'temperature' },
+//   { label: 'visibility', value: 'visibility' },
+// ];
 const onSelectChange = (value: SelectableValue<any>, actionMeta: ActionMeta) => {
   console.log('on change', value);
 };
 
-type FromSectionProps = {
-  onChange: (table: string | undefined) => void;
-  table: string | undefined;
-  getTableOptions: (filter: string) => Promise<string[]>;
-};
+// type FromSectionProps = {
+//   onChange: (table: string | undefined) => void;
+//   table: string | undefined;
+//   getTableOptions: (filter: string) => Promise<string[]>;
+// };
 
 // FromSection:
 // > FROM $table: TableOptions
@@ -56,11 +55,10 @@ export const FromSection = (): JSX.Element => {
 export const SelectSection = (): JSX.Element => {
   return (
     <div className="gf-form-inline">
-      // SELECT Field [field] Function [function]
       <div className="gf-form">
         <SegmentSection key="kEY" label="LABEL" fill={true}>
           {/* <div className={cx('gf-form-label', css({ paddingLeft: '0' }))}></div> */}
-          <Segment Component={AddButton} onChange={({ value }) => action('New value added')(value)} options={options} />
+          {/*<Segment Component={AddButton} onChange={({ value }) => action('New value added')(value)} options={options} />*/}
         </SegmentSection>
       </div>
     </div>

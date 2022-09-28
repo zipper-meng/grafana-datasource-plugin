@@ -1,27 +1,18 @@
 import { DataQuery, DataSourceJsonData } from '@grafana/data';
 
-export enum InfluxVersion {
+export enum QueryVersion {
   InfluxQL = 'InfluxQL',
-  Flux = 'Flux',
+  Sql = 'Sql',
+  PgSql = "PgSql",
 }
 
 export interface InfluxOptions extends DataSourceJsonData {
-  version?: InfluxVersion;
-
+  version?: QueryVersion;
   timeInterval?: string;
-  httpMode?: string;
-
-  // With Flux
-  organization?: string;
-  defaultBucket?: string;
   maxSeries?: number;
 }
 
 export interface InfluxSecureJsonData {
-  // For Flux
-  token?: string;
-
-  // In 1x a different password can be sent than then HTTP auth
   password?: string;
 }
 

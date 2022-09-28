@@ -1,6 +1,6 @@
 import { css } from '@emotion/css';
 import defaults from 'lodash/defaults';
-import React, { PureComponent, useCallback } from 'react';
+import React, { PureComponent } from 'react';
 
 import { Button, CodeEditor } from '@grafana/ui';
 import { QueryEditorProps } from '@grafana/data';
@@ -19,14 +19,10 @@ export class QueryEditor extends PureComponent<Props> {
   };
 
   render() {
-    const selectList = useCallback(() => {
-      return Promise.resolve();
-    }, []);
-
     const query = defaults(this.props.query, defaultQuery);
     const { queryText } = query;
 
-    const rawSql = false;
+    const rawSql = true;
     if (rawSql) {
       return (
         <>

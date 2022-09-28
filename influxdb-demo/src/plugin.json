@@ -10,6 +10,8 @@
   "alerting": true,
   "backend": true,
 
+  "executable": "gpx_magz-influxdb",
+
   "queryOptions": {
     "minInterval": true
   },

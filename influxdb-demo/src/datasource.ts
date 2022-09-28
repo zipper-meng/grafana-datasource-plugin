@@ -25,22 +25,19 @@ import {
   BackendDataSourceResponse,
   DataSourceWithBackend,
   FetchResponse,
-  frameToMetricFindValue,
   getBackendSrv,
   getTemplateSrv,
   TemplateSrv,
 } from '@grafana/runtime';
 
 import { AnnotationEditor } from './components/AnnotationEditor';
-import { FluxQueryEditor } from './components/FluxQueryEditor';
-import { BROWSER_MODE_DISABLED_MESSAGE } from './constants';
 import InfluxQueryModel from './influx_query_model';
 import InfluxSeries from './influx_series';
 import { prepareAnnotation } from './migrations';
 import { buildRawQuery } from './queryUtils';
 import { InfluxQueryBuilder } from './query_builder';
 import ResponseParser from './response_parser';
-import { InfluxOptions, InfluxQuery, InfluxVersion } from './types';
+import { InfluxOptions, InfluxQuery } from './types';
 
 // we detect the field type based on the value-array
 function getFieldType(values: unknown[]): FieldType {
@@ -125,14 +122,12 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
   access: 'direct' | 'proxy';
   interval: any;
   responseParser: any;
-  httpMode: string;
-  isFlux: boolean;
-  isProxyAccess: boolean;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<InfluxOptions>,
     private readonly templateSrv: TemplateSrv = getTemplateSrv()
   ) {
+    console.log("InfluxDatasource_constructor", instanceSettings);
     super(instanceSettings);
 
     this.type = 'influxdb';
@@ -149,29 +144,15 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
     this.access = instanceSettings.access;
     const settingsData = instanceSettings.jsonData || ({} as InfluxOptions);
     this.interval = settingsData.timeInterval;
-    this.httpMode = settingsData.httpMode || 'GET';
     this.responseParser = new ResponseParser();
-    this.isFlux = settingsData.version === InfluxVersion.Flux;
-    this.isProxyAccess = instanceSettings.access === 'proxy';
 
-    if (this.isFlux) {
-      // When flux, use an annotation processor rather than the `annotationQuery` lifecycle
-      this.annotations = {
-        QueryEditor: FluxQueryEditor,
-      };
-    } else {
-      this.annotations = {
-        QueryEditor: AnnotationEditor,
-        prepareAnnotation,
-      };
-    }
+    this.annotations = {
+      QueryEditor: AnnotationEditor,
+      prepareAnnotation,
+    };
   }
 
   query(request: DataQueryRequest<InfluxQuery>): Observable<DataQueryResponse> {
-    if (!this.isProxyAccess) {
-      const error = new Error(BROWSER_MODE_DISABLED_MESSAGE);
-      return throwError(() => error);
-    }
     // for not-flux queries we call `this.classicQuery`, and that
     // handles the is-hidden situation.
     // for the flux-case, we do the filtering here
@@ -179,10 +160,6 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
       ...request,
       targets: request.targets.filter((t) => t.hide !== true),
     };
-
-    if (this.isFlux) {
-      return super.query(filteredRequest);
-    }
 
     if (this.isMigrationToggleOnAndIsAccessProxy()) {
       return super.query(filteredRequest).pipe(
@@ -229,9 +206,6 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
   }
 
   getQueryDisplayText(query: InfluxQuery) {
-    if (this.isFlux) {
-      return query.query;
-    }
     return new InfluxQueryModel(query).render(false);
   }
 
@@ -239,22 +213,12 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
    * Returns false if the query should be skipped
    */
   filterQuery(query: InfluxQuery): boolean {
-    if (this.isFlux) {
-      return !!query.query;
-    }
     return true;
   }
 
   applyTemplateVariables(query: InfluxQuery, scopedVars: ScopedVars): Record<string, any> {
     // We want to interpolate these variables on backend
     const { __interval, __interval_ms, ...rest } = scopedVars;
-
-    if (this.isFlux) {
-      return {
-        ...query,
-        query: this.templateSrv.replace(query.query ?? '', rest), // The raw query text
-      };
-    }
 
     if (config.featureToggles.influxdbBackendMigration && this.access === 'proxy') {
       query = this.applyVariables(query, scopedVars, rest);
@@ -382,12 +346,6 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
   }
 
   async annotationEvents(options: DataQueryRequest, annotation: InfluxQuery): Promise<AnnotationEvent[]> {
-    if (this.isFlux) {
-      return Promise.reject({
-        message: 'Flux requires the standard annotation query',
-      });
-    }
-
     // InfluxQL puts a query string on the annotation
     if (!annotation.query) {
       return Promise.reject({
@@ -443,7 +401,7 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
   targetContainsTemplate(target: any) {
     // for flux-mode we just take target.query,
     // for influxql-mode we use InfluxQueryModel to create the text-representation
-    const queryText = this.isFlux ? target.query : buildRawQuery(target);
+    const queryText = buildRawQuery(target);
 
     return this.templateSrv.containsTemplate(queryText);
   }
@@ -454,14 +412,6 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
     }
 
     return queries.map((query) => {
-      if (this.isFlux) {
-        return {
-          ...query,
-          datasource: this.getRef(),
-          query: this.templateSrv.replace(query.query ?? '', scopedVars, 'regex'), // The raw query text
-        };
-      }
-
       return {
         ...query,
         datasource: this.getRef(),
@@ -518,25 +468,6 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
   }
 
   async metricFindQuery(query: string, options?: any): Promise<MetricFindValue[]> {
-    if (this.isFlux || this.isMigrationToggleOnAndIsAccessProxy()) {
-      const target: InfluxQuery = {
-        refId: 'metricFindQuery',
-        query,
-        rawQuery: true,
-      };
-      return lastValueFrom(
-        super.query({
-          ...options, // includes 'range'
-          targets: [target],
-        } as DataQueryRequest)
-      ).then((rsp) => {
-        if (rsp.data?.length) {
-          return frameToMetricFindValue(rsp.data[0]);
-        }
-        return [];
-      });
-    }
-
     const interpolated = this.templateSrv.replace(query, undefined, 'regex');
 
     return lastValueFrom(this._seriesQuery(interpolated, options)).then((resp) => {
@@ -545,18 +476,21 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
   }
 
   getTagKeys(options: any = {}) {
+    console.log("getTagKeys", this);
     const queryBuilder = new InfluxQueryBuilder({ measurement: options.measurement || '', tags: [] }, this.database);
     const query = queryBuilder.buildExploreQuery('TAG_KEYS');
     return this.metricFindQuery(query, options);
   }
 
   getTagValues(options: any = {}) {
+    console.log("getTagValues", this);
     const queryBuilder = new InfluxQueryBuilder({ measurement: options.measurement || '', tags: [] }, this.database);
     const query = queryBuilder.buildExploreQuery('TAG_VALUES', options.key);
     return this.metricFindQuery(query, options);
   }
 
   _seriesQuery(query: string, options?: any) {
+    console.log("_seriesQuery", query, options);
     if (!query) {
       return of({ results: [] });
     }
@@ -566,7 +500,7 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
       query = query.replace('$timeFilter', timeFilter);
     }
 
-    return this._influxRequest(this.httpMode, '/query', { q: query, epoch: 'ms' }, options);
+    return this._influxRequest('POST', '/query', { q: query, epoch: 'ms' }, options);
   }
 
   serializeParams(params: any) {
