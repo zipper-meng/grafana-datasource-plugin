@@ -1,0 +1,42 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "datasource",
+  "name": "CnosDB",
+  "id": "cnosdb-cnosdb-datasource",
+  "metrics": true,
+  "backend": true,
+  "executable": "gpx_cnosdb",
+  "info": {
+    "description": "A grafana data source plugin for CnosDB",
+    "author": {
+      "name": "cnosdb",
+      "url": "https://github.com/cnosdb/cnosdb"
+    },
+    "keywords": [
+      "cnosdb",
+      "tsdb",
+      "timeseries"
+    ],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "Website",
+        "url": "https://github.com/grafana/grafana-starter-datasource"
+      },
+      {
+        "name": "License",
+        "url": "https://github.com/grafana/grafana-starter-datasource/blob/master/LICENSE"
+      }
+    ],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=7.0.0",
+    "plugins": []
+  }
+}
