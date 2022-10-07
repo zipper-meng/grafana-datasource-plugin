@@ -1,7 +1,7 @@
 {
-  "name": "cnosdb-my-plugin",
+  "name": "magz-cnosdb-demo",
   "version": "1.0.0",
-  "description": "",
+  "description": "A demo datasource plugin for CnosDB.",
   "scripts": {
     "build": "grafana-toolkit plugin:build",
     "test": "grafana-toolkit plugin:test",
@@ -14,20 +14,16 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@grafana/data": "latest",
-    "@grafana/runtime": "latest",
     "@grafana/toolkit": "latest",
     "@grafana/ui": "latest",
-    "@types/lodash": "latest",
     "@testing-library/jest-dom": "5.4.0",
     "@testing-library/react": "^10.0.2",
-    "@types/debounce-promise": "3.1.4"
+    "@types/debounce-promise": "3.1.4",
+    "@types/lodash": "latest"
   },
   "dependencies": {
     "axios": "^0.27.2",
     "debounce-promise": "3.1.2"
-  },
-  "resolutions": {
-    "rxjs": "7.5.7"
   },
   "engines": {
     "node": ">=14"

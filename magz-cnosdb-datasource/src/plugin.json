@@ -1,14 +1,14 @@
 {
   "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
   "type": "datasource",
-  "name": "MyDatasourcePlugin",
-  "id": "magz-my-datasource",
+  "name": "CnosDB(Demo)",
+  "id": "magz-cnosdb-datasource",
   "metrics": true,
   "info": {
-    "description": "",
+    "description": "A demo datasource plugin for CnosDB.",
     "author": {
-      "name": "zipper-meng",
-      "url": "https://github.com/zipper"
+      "name": "cnosdb",
+      "url": "https://github.com/cnosdb/cnosdb"
     },
     "keywords": [
       "cnosdb",
