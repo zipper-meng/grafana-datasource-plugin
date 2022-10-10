@@ -1,7 +1,7 @@
 import { cloneDeep } from 'lodash';
 
-import InfluxQueryModel from './influxql_query_model';
 import { MyQuery } from './types';
+import InfluxQueryModel from './influxql_query_model';
 
 export function buildRawQuery(query: MyQuery): string {
   const queryCopy = cloneDeep(query);

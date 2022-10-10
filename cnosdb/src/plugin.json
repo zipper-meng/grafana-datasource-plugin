@@ -9,7 +9,7 @@
   "info": {
     "description": "A grafana data source plugin for CnosDB.",
     "author": {
-      "name": "cnosdb",
+      "name": "CnosDB",
       "url": "https://github.com/cnosdb/cnosdb"
     },
     "keywords": [

@@ -19,10 +19,10 @@ import { getTemplateSrv, TemplateSrv } from '@grafana/runtime';
 
 import { MyQuery, MyDataSourceOptions } from './types';
 import { HttpClient } from 'http_client';
+import ResponseParser from './response_parser';
 import InfluxQueryModel from 'influxql_query_model';
 import { InfluxQueryBuilder } from 'influxql_query_builder';
-import ResponseParser from './response_parser';
-import InfluxSeries from 'series_influx';
+import InfluxSeries from './influxql_series';
 
 export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
   url: string;
@@ -33,12 +33,12 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>,
     private readonly templateSrv: TemplateSrv = getTemplateSrv()
   ) {
+    console.log('Datasource constructing', instanceSettings);
     super(instanceSettings);
-    console.log('Datasource constructing by', instanceSettings);
 
-    this.url = instanceSettings.url ?? '';
+    this.url = instanceSettings.url ?? instanceSettings.jsonData.url ?? '';
     this.database = instanceSettings.database ?? instanceSettings.jsonData.database ?? '';
-    this.httpClient = new HttpClient();
+    this.httpClient = new HttpClient(this.url);
     this.responseParser = new ResponseParser();
     console.log('Datasource constructed', this);
   }
@@ -72,7 +72,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     }
     const interpolated = this.templateSrv.replace(query, undefined, 'regex');
 
-    return lastValueFrom(this.httpClient.post('/query', '', { q: interpolated, db: this.database })).then((resp) => {
+    return lastValueFrom(this.httpClient.post('/api/v1/sql', interpolated, { db: this.database })).then((resp) => {
       return this.responseParser.parse(query, resp);
     });
   }
@@ -126,7 +126,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
   }
 
   _request(query: string, targets: any[], options: DataQueryRequest<MyQuery>) {
-    return this.httpClient.post('/query', '', { q: query, db: this.database }).pipe(
+    return this.httpClient.post('/api/v1/sql', query, { db: this.database }).pipe(
       map_rx((data: any) => {
         console.log('Response', data);
         if (!data || !data.results) {
@@ -159,21 +159,11 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
               meta,
             });
 
-            switch (target.resultFormat) {
-              case 'logs':
-                meta.preferredVisualisationType = 'logs';
-              case 'table': {
-                seriesList.push(influxSeries.getTable());
-                break;
-              }
-              default: {
-                const timeSeries = influxSeries.getTimeSeries();
-                for (y = 0; y < timeSeries.length; y++) {
-                  seriesList.push(timeSeriesToDataFrame(timeSeries[y]));
-                }
-                break;
-              }
+            const timeSeries = influxSeries.getTimeSeries();
+            for (y = 0; y < timeSeries.length; y++) {
+              seriesList.push(timeSeriesToDataFrame(timeSeries[y]));
             }
+            break;
           }
         }
 

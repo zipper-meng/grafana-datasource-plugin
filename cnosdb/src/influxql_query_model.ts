@@ -3,10 +3,10 @@ import { map, find, filter, indexOf } from 'lodash';
 import { ScopedVars } from '@grafana/data';
 import { TemplateSrv } from '@grafana/runtime';
 
-import queryPart from './influxql_query_part';
 import { MyQuery, SelectItem, TagItem } from './types';
-import { regexEscape } from './utils';
 import { QueryPart } from './query_part';
+import { regexEscape } from './utils';
+import queryPart from './influxql_query_part';
 
 export default class InfluxQueryModel {
   target: MyQuery;

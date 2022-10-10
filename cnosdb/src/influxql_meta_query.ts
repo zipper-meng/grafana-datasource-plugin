@@ -1,6 +1,6 @@
+import { TagItem } from './types';
 import { DataSource } from './datasource';
 import { InfluxQueryBuilder } from './influxql_query_builder';
-import { TagItem } from './types';
 
 const runExploreQuery = (
   type: string,

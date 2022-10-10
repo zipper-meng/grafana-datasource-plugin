@@ -1,17 +1,40 @@
 import { uniqueId } from 'lodash';
-import React, { PureComponent } from 'react';
+import React, { PureComponent, ChangeEvent } from 'react';
+import { Base64 } from 'js-base64';
 
 import {
   DataSourcePluginOptionsEditorProps,
-  updateDatasourcePluginResetOption,
   onUpdateDatasourceJsonDataOption,
   updateDatasourcePluginJsonDataOption,
+  updateDatasourcePluginResetOption,
 } from '@grafana/data';
-import { Alert, DataSourceHttpSettings, InlineField, InlineFormLabel, LegacyForms } from '@grafana/ui';
+import { Alert, InlineField, InlineFormLabel, LegacyForms, LegacyInputStatus } from '@grafana/ui';
 
-import { MyDataSourceOptions } from '../types';
+import { MyDataSourceOptions, MySecureJsonData } from '../types';
 
-const { Input } = LegacyForms;
+const { Input, SecretFormField } = LegacyForms;
+
+type ConfigInputProps = {
+  label: string;
+  htmlPrefix: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>, status?: LegacyInputStatus) => void;
+  value: string;
+};
+
+const ConfigInput = ({ label, htmlPrefix, onChange, value }: ConfigInputProps): JSX.Element => {
+  return (
+    <div className="gf-form-inline">
+      <div className="gf-form">
+        <InlineFormLabel htmlFor={htmlPrefix} className="width-10">
+          {label}
+        </InlineFormLabel>
+        <div className="width-20">
+          <Input id={htmlPrefix} className="width-20" value={value || ''} onChange={onChange} />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export type Props = DataSourcePluginOptionsEditorProps<MyDataSourceOptions>;
 type State = {
@@ -27,7 +50,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    this.state.maxSeries = props.options.jsonData.maxSeries?.toString() || '';
+    this.state.maxSeries = this.props.options.jsonData.maxSeries?.toString() || '';
     this.htmlPrefix = uniqueId('cnosdb-config');
   }
 
@@ -35,48 +58,117 @@ export class ConfigEditor extends PureComponent<Props, State> {
     return onUpdateDatasourceJsonDataOption(this.props, property);
   };
 
+  onUserChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    onOptionsChange({
+      ...options,
+      jsonData: {
+        ...options.jsonData,
+        user: event.target.value,
+      },
+    });
+    this.onAuthChange(event.target.value, undefined);
+  };
+
+  onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    onOptionsChange({
+      ...options,
+      secureJsonData: {
+        ...options.secureJsonData,
+        password: event.target.value,
+      },
+    });
+    this.onAuthChange(undefined, event.target.value);
+  };
+
+  onAuthChange = (user?: string, password?: string) => {
+    const { options } = this.props;
+
+    if (!user) {
+      user = options.jsonData.user;
+    }
+    if (!password) {
+      if (options.secureJsonData) {
+        password = (options.secureJsonData as MySecureJsonData).password;
+      } else {
+        password = '';
+      }
+    }
+
+    options.jsonData.auth = 'Basic ' + Base64.encode(user + ':' + password);
+    console.log('Generating new auth', user, password, options.jsonData.auth);
+    onUpdateDatasourceJsonDataOption(this.props, 'auth');
+  };
+
   onResetPassword = () => {
     updateDatasourcePluginResetOption(this.props, 'password');
   };
 
   render() {
-    const { options, onOptionsChange } = this.props;
-    const jsonData = options.jsonData;
+    const { options } = this.props;
+    const { secureJsonFields, jsonData } = options;
+
+    // TODO: Add proxy mode (need Golang codes).
+    options.access = 'direct';
+    let secureJsonData;
+    if (options.secureJsonData) {
+      secureJsonData = options.secureJsonData as MySecureJsonData;
+    } else {
+      secureJsonData = {} as MySecureJsonData;
+      options.secureJsonData = secureJsonData;
+    }
+
     return (
       <>
         {options.access === 'direct' && (
           <Alert title="Deprecation Notice" severity="warning">
-            Browser access mode in the InfluxDB datasource is deprecated and will be removed in a future release.
+            Browser access mode may produce CORS problems.
           </Alert>
         )}
 
-        <DataSourceHttpSettings
-          showAccessOptions={true}
-          dataSourceConfig={options}
-          defaultUrl="http://localhost:31007"
-          onChange={onOptionsChange}
-        />
+        <div className="gf-form-group">
+          <div>
+            <h3 className="page-heading">CnosDB Connection</h3>
+          </div>
+          <ConfigInput
+            label="URL"
+            htmlPrefix={`${this.htmlPrefix}-url`}
+            onChange={this.onDsJsonDataChange('url')}
+            value={jsonData.url || ''}
+          />
+          <ConfigInput
+            label="Database"
+            htmlPrefix={`${this.htmlPrefix}-database`}
+            onChange={this.onDsJsonDataChange('database')}
+            value={jsonData.database || ''}
+          />
+          <ConfigInput
+            label="User"
+            htmlPrefix={`${this.htmlPrefix}-user`}
+            onChange={this.onUserChange}
+            value={jsonData.user || ''}
+          />
+          <div className="gf-form-inline">
+            <div className="gf-form">
+              <SecretFormField
+                isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
+                value={secureJsonData.password}
+                label="Password"
+                aria-label="Password"
+                labelWidth={10}
+                inputWidth={20}
+                onReset={this.onResetPassword}
+                onChange={this.onPasswordChange}
+              />
+            </div>
+          </div>
+        </div>
 
         <div className="gf-form-group">
           <div>
-            <h3 className="page-heading">Database</h3>
+            <h3 className="page-heading">CnosDB Details</h3>
           </div>
-          <div className="gf-form-inline">
-            <div className="gf-form">
-              <InlineFormLabel htmlFor={`${this.htmlPrefix}-db`} className="width-10">
-                Database
-              </InlineFormLabel>
-              <div className="width-20">
-                <Input
-                  id={`${this.htmlPrefix}-db`}
-                  className="width-20"
-                  value={jsonData.database || ''}
-                  onChange={this.onDsJsonDataChange('database')}
-                />
-              </div>
-            </div>
-          </div>
-
           <div className="gf-form-inline">
             <div className="gf-form">
               <InlineFormLabel

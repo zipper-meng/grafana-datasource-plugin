@@ -1,3 +1,7 @@
+/**
+ * Cloned from grafana:v9.0.9/public/app/core/table_model.ts
+ */
+
 import { findIndex } from 'lodash';
 
 import { Column, TableData, QueryResultMeta } from '@grafana/data';

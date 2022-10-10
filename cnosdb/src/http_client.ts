@@ -68,14 +68,14 @@ class HttpClient {
   /**
    * Create a new HttpClient instance with default configuration to call Restful Service
    */
-  constructor() {
+  constructor(baseURL?: string) {
     this.service = axios.create({
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       maxContentLength: Infinity,
       httpsAgent: Infinity,
       withCredentials: false,
       timeout: 1200,
-      baseURL: 'http://localhost:8086',
+      baseURL: baseURL ?? 'http://localhost:31007',
       responseType: 'json',
     });
 

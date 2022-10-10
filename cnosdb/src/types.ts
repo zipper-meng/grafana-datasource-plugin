@@ -6,6 +6,8 @@ import { DataQuery, DataSourceJsonData } from '@grafana/data';
 export interface MyDataSourceOptions extends DataSourceJsonData {
   url?: string;
   database?: string;
+  user?: string;
+  auth?: string;
 
   timeInterval?: string;
   httpMode?: string;
@@ -15,7 +17,8 @@ export interface MyDataSourceOptions extends DataSourceJsonData {
 
 /**
  * Value that is used in the backend, but never sent over HTTP to the frontend
- */ export interface MySecureJsonData {
+ */
+ export interface MySecureJsonData {
   password?: string;
 }
 
