@@ -1,9 +1,9 @@
-import { each, flatten, groupBy, isArray } from 'lodash';
+import {each, flatten, groupBy, isArray} from 'lodash';
 
-import { AnnotationEvent, DataFrame, DataQuery, FieldType, QueryResultMeta } from '@grafana/data';
-import { toDataQueryResponse } from '@grafana/runtime';
+import {AnnotationEvent, DataFrame, DataQuery, FieldType, QueryResultMeta} from '@grafana/data';
+import {toDataQueryResponse} from '@grafana/runtime';
 
-import { MyQuery } from './types';
+import {MyQuery} from './types';
 import TableModel from './table_model';
 
 export default class ResponseParser {
@@ -44,10 +44,10 @@ export default class ResponseParser {
     });
 
     // NOTE: it is important to keep the order of items in the parsed output
-    // the same as it was in the influxdb-response.
+    // the same as it was in the response.
     // we use a `Set` to collect the unique-results, and `Set` iteration
     // order is insertion-order, so this should be ok.
-    return Array.from(res).map((v) => ({ text: v }));
+    return Array.from(res).map((v) => ({text: v}));
   }
 
   getTable(dfs: DataFrame[], target: MyQuery, meta: QueryResultMeta): TableModel {
@@ -164,14 +164,14 @@ function getTableCols(dfs: DataFrame[], table: TableModel, target: MyQuery): Tab
   dfs[0].fields.forEach((field) => {
     // Time col
     if (field.name === 'time') {
-      table.columns.push({ text: 'Time', type: FieldType.time });
+      table.columns.push({text: 'Time', type: FieldType.time});
     }
 
     // Group by (label) column(s)
     else if (field.name === 'value') {
       if (field.labels) {
         Object.keys(field.labels).forEach((key) => {
-          table.columns.push({ text: key });
+          table.columns.push({text: key});
         });
       }
     }
@@ -181,14 +181,14 @@ function getTableCols(dfs: DataFrame[], table: TableModel, target: MyQuery): Tab
   if (dfs[0].refId === 'metricFindQuery') {
     dfs.forEach((field) => {
       if (field.name) {
-        table.columns.push({ text: field.name });
+        table.columns.push({text: field.name});
       }
     });
   }
 
   // Select (metric) column(s)
   for (let i = 0; i < selectedParams.length; i++) {
-    table.columns.push({ text: selectedParams[i] });
+    table.columns.push({text: selectedParams[i]});
   }
 
   return table;

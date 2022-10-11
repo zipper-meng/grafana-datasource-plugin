@@ -1,19 +1,11 @@
-import { css } from '@emotion/css';
-import React, { useMemo } from 'react';
+import {css} from '@emotion/css';
+import React from 'react';
 
-import { GrafanaTheme2 } from '@grafana/data';
-import { InlineLabel, SegmentSection, useStyles2 } from '@grafana/ui';
-import { getTemplateSrv } from '@grafana/runtime';
+import {GrafanaTheme2} from '@grafana/data';
+import {InlineLabel, SegmentSection, useStyles2} from '@grafana/ui';
 
-import {
-  getAllMeasurementsForTags,
-  getFieldKeysForMeasurement,
-  getTagKeysForMeasurementAndTags,
-  getTagValues,
-} from '../influxql_meta_query';
-import { DataSource } from '../datasource';
-import { MyQuery, TagItem } from '../types';
-import { useUniqueId } from '../utils';
+import {DataSource} from '../datasource';
+import {MyQuery} from '../types';
 import {
   addNewGroupByPart,
   addNewSelectPart,
@@ -23,33 +15,26 @@ import {
   removeGroupByPart,
   removeSelectPart,
 } from '../query_utils';
-import { getNewGroupByPartOptions, getNewSelectPartOptions, makePartList } from './part_list_utils';
-import { FromSection } from './FromSection';
-import { TagsSection } from './TagsSection';
-import { PartListSection } from './PartListSection';
-import { OrderBySection } from './OrderBySection';
-import { InputSection } from './InputSection';
+import {getNewGroupByPartOptions, getNewSelectPartOptions, makePartList} from './part_list_utils';
+import {FromSection} from './FromSection';
+import {TagsSection} from './TagsSection';
+import {PartListSection} from './PartListSection';
+import {InputSection} from './InputSection';
 
-function getTemplateVariableOptions() {
-  return (
-    getTemplateSrv()
-      .getVariables()
-      // we make them regex-params, i'm not 100% sure why.
-      // probably because this way multi-value variables work ok too.
-      .map((v) => `/^$${v.name}$/`)
-  );
-}
+// function getTemplateVariableOptions() {
+//   return (
+//     getTemplateSrv()
+//       .getVariables()
+//       // we make them regex-params, i'm not 100% sure why.
+//       // probably because this way multi-value variables work ok too.
+//       .map((v) => `/^$${v.name}$/`)
+//   );
+// }
 
-// helper function to make it easy to call this from the widget-render-code
-function withTemplateVariableOptions(optionsPromise: Promise<string[]>): Promise<string[]> {
-  return optionsPromise.then((options) => [...getTemplateVariableOptions(), ...options]);
-}
-
-// it is possible to add fields into the `InfluxQueryTag` structures, and they do work,
-// but in some cases, when we do metadata queries, we have to remove them from the queries.
-function filterTags(parts: TagItem[], allTagKeys: Set<string>): TagItem[] {
-  return parts.filter((t) => allTagKeys.has(t.key));
-}
+// // helper function to make it easy to call this from the widget-render-code
+// function withTemplateVariableOptions(optionsPromise: Promise<string[]>): Promise<string[]> {
+//   return optionsPromise.then((options) => [...getTemplateVariableOptions(), ...options]);
+// }
 
 type Props = {
   query: MyQuery;
@@ -59,46 +44,27 @@ type Props = {
 };
 
 export const VisualQueryEditor = (props: Props): JSX.Element => {
-  const uniqueId = useUniqueId();
-  const orderByTimeId = `influxdb-qe-order-by${uniqueId}`;
-
   const styles = useStyles2(getStyles);
   const query = normalizeQuery(props.query);
-  const { datasource } = props;
-  const { table } = query;
+  const {table, rawTagsExpr} = query;
 
-  console.log('Building VisualQueryEditor', query);
+  const selectLists = (query.select ?? []).map((sel) => makePartList(sel, new Map([
+    [
+      'field_0',
+      () => {
+        return Promise.resolve([])
+      },
+    ],
+  ])));
 
-  const allTagKeys = useMemo(() => {
-    return getTagKeysForMeasurementAndTags(table, [], datasource).then((tags) => {
-      return new Set(tags);
-    });
-  }, [table, datasource]);
-
-  const selectLists = useMemo(() => {
-    const dynamicSelectPartOptions = new Map([
-      [
-        'field_0',
-        () => {
-          return table !== undefined ? getFieldKeysForMeasurement(table, datasource) : Promise.resolve([]);
-        },
-      ],
-    ]);
-    return (query.select ?? []).map((sel) => makePartList(sel, dynamicSelectPartOptions));
-  }, [table, query.select, datasource]);
-
-  // the following function is not complicated enough to memoize, but it's result
-  // is used in both memoized and un-memoized parts, so we have no choice
-  const getTagKeys = useMemo(() => {
-    return () =>
-      allTagKeys.then((keys) => getTagKeysForMeasurementAndTags(table, filterTags(query.tags ?? [], keys), datasource));
-  }, [table, query.tags, datasource, allTagKeys]);
-
-  const groupByList = useMemo(() => {
-    const dynamicGroupByPartOptions = new Map([['tag_0', getTagKeys]]);
-
-    return makePartList(query.groupBy ?? [], dynamicGroupByPartOptions);
-  }, [getTagKeys, query.groupBy]);
+  const groupByList = makePartList(query.groupBy ?? [], new Map([
+    [
+      'tag_0',
+      () => {
+        return Promise.resolve([])
+      },
+    ],
+  ]));
 
   const onAppliedChange = (newQuery: MyQuery) => {
     props.onChange(newQuery);
@@ -112,11 +78,10 @@ export const VisualQueryEditor = (props: Props): JSX.Element => {
     });
   };
 
-  const handleTagsSectionChange = (tags: TagItem[]) => {
-    // we set empty-arrays to undefined
+  const handleTagsSectionChange = (tagExpr: string) => {
     onAppliedChange({
       ...query,
-      tags: tags.length === 0 ? undefined : tags,
+      rawTagsExpr: tagExpr,
     });
   };
 
@@ -125,32 +90,12 @@ export const VisualQueryEditor = (props: Props): JSX.Element => {
       <SegmentSection label="FROM" fill={true}>
         <FromSection
           table={table}
-          getTableOptions={(filter) =>
-            withTemplateVariableOptions(
-              allTagKeys.then((keys) =>
-                getAllMeasurementsForTags(
-                  filter === '' ? undefined : filter,
-                  filterTags(query.tags ?? [], keys),
-                  datasource
-                )
-              )
-            )
-          }
           onChange={handleFromSectionChange}
         />
         <InlineLabel width="auto" className={styles.inlineLabel}>
           WHERE
         </InlineLabel>
-        <TagsSection
-          tags={query.tags ?? []}
-          onChange={handleTagsSectionChange}
-          getTagKeyOptions={getTagKeys}
-          getTagValueOptions={(key: string) =>
-            withTemplateVariableOptions(
-              allTagKeys.then((keys) => getTagValues(key, table, filterTags(query.tags ?? [], keys), datasource))
-            )
-          }
-        />
+        <TagsSection tagExpr={rawTagsExpr} onTagExprChange={handleTagsSectionChange}/>
       </SegmentSection>
       {selectLists.map((sel, index) => (
         <SegmentSection key={index} label={index === 0 ? 'SELECT' : ''} fill={true}>
@@ -173,7 +118,7 @@ export const VisualQueryEditor = (props: Props): JSX.Element => {
       <SegmentSection label="GROUP BY" fill={true}>
         <PartListSection
           parts={groupByList}
-          getNewPartOptions={() => getNewGroupByPartOptions(query, getTagKeys)}
+          getNewPartOptions={() => getNewGroupByPartOptions(query, () => Promise.resolve([]))}
           onChange={(partIndex, newParams) => {
             const newQuery = changeGroupByPart(query, partIndex, newParams);
             onAppliedChange(newQuery);
@@ -186,29 +131,12 @@ export const VisualQueryEditor = (props: Props): JSX.Element => {
           }}
         />
       </SegmentSection>
-      <SegmentSection label="TIMEZONE" fill={true}>
-        <InlineLabel htmlFor={orderByTimeId} width="auto" className={styles.inlineLabel}>
-          ORDER BY TIME
-        </InlineLabel>
-        <OrderBySection
-          inputId={orderByTimeId}
-          value={query.orderByTime === 'DESC' ? 'DESC' : 'ASC' /* FIXME: make this shared with influx_query_model */}
-          onChange={(v) => {
-            onAppliedChange({ ...query, orderByTime: v });
-          }}
-        />
-      </SegmentSection>
-      {/* query.fill is ignored in the query-editor, and it is deleted whenever
-          query-editor changes. the influx_query_model still handles it, but the new
-          approach seem to be to handle "fill" inside query.groupBy. so, if you
-          have a panel where in the json you have query.fill, it will be applied,
-          as long as you do not edit that query. */}
       <SegmentSection label="LIMIT" fill={true}>
         <InputSection
           placeholder="(optional)"
           value={query.limit?.toString()}
           onChange={(limit) => {
-            onAppliedChange({ ...query, limit });
+            onAppliedChange({...query, limit});
           }}
         />
       </SegmentSection>

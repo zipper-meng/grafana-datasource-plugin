@@ -1,14 +1,14 @@
-import { map, find, filter, indexOf } from 'lodash';
+import {filter, find, indexOf, map} from 'lodash';
 
-import { ScopedVars } from '@grafana/data';
-import { TemplateSrv } from '@grafana/runtime';
+import {ScopedVars} from '@grafana/data';
+import {TemplateSrv} from '@grafana/runtime';
 
-import { MyQuery, SelectItem, TagItem } from './types';
-import { QueryPart } from './query_part';
-import { regexEscape } from './utils';
-import queryPart from './influxql_query_part';
+import {MyQuery, SelectItem, TagItem} from './types';
+import {QueryPart} from './query_part';
+import {regexEscape} from './utils';
+import queryPart from './cnosql_query_part';
 
-export default class InfluxQueryModel {
+export default class CnosdbQueryModel {
   target: MyQuery;
   selectModels: any[] = [];
   queryBuilder: any;
@@ -26,13 +26,13 @@ export default class InfluxQueryModel {
     target.orderByTime = target.orderByTime || 'ASC';
     target.tags = target.tags || [];
     target.groupBy = target.groupBy || [
-      { type: 'time', params: ['$__interval'] },
-      { type: 'fill', params: ['null'] },
+      {type: 'time', params: ['$__interval']},
+      {type: 'fill', params: ['null']},
     ];
     target.select = target.select || [
       [
-        { type: 'field', params: ['value'] },
-        { type: 'mean', params: [] },
+        {type: 'field', params: ['value']},
+        {type: 'avg', params: []},
       ],
     ];
 
@@ -43,13 +43,24 @@ export default class InfluxQueryModel {
     this.selectModels = map(this.target.select, (parts: any) => {
       return map(parts, queryPart.create);
     });
-    this.groupByParts = map(this.target.groupBy, queryPart.create);
+    this.groupByParts = map(this.target.groupBy, (part: any) => {
+      if (part.type === 'time') {
+        // from: GROUP BY time($interval)
+        // to: "GROUP BY time", "DATE_BIN(... $interval ...) AS time"
+        this.target.interval = part.params[0];
+        part.params[0] = 'time';
+        part.Type = 'field';
+      } else if (part.type === 'fill') {
+        this.target.fill = part.params[0];
+      }
+      return queryPart.create(part);
+    });
   }
 
   updatePersistedParts() {
     this.target.select = map(this.selectModels, (selectParts) => {
       return map(selectParts, (part: any) => {
-        return { type: part.def.type, params: part.params };
+        return {type: part.def.type, params: part.params};
       });
     });
   }
@@ -71,7 +82,7 @@ export default class InfluxQueryModel {
 
     const typePart = stringParts[1];
     const arg = stringParts[2];
-    const partModel = queryPart.create({ type: typePart, params: [arg] });
+    const partModel = queryPart.create({type: typePart, params: [arg]});
     const partCount = this.target.groupBy.length;
 
     if (partCount === 0) {
@@ -137,7 +148,7 @@ export default class InfluxQueryModel {
   }
 
   addSelectPart(selectParts: any[], type: string) {
-    const partModel = queryPart.create({ type: type });
+    const partModel = queryPart.create({type: type});
     partModel.def.addStrategy(selectParts, partModel, this);
     this.updatePersistedParts();
   }
@@ -213,7 +224,15 @@ export default class InfluxQueryModel {
       }
     }
 
+    console.log('Render query using MyQuery');
+
     let query = 'SELECT ';
+    if (target.interval) {
+      query += "DATE_BIN(INTERVAL '" + target.interval + "', time, TIMESTAMP '1970-01-01T00:00:00Z') AS time, ";
+    } else {
+      query += 'time';
+    }
+
     let i, y;
     for (i = 0; i < this.selectModels.length; i++) {
       const parts = this.selectModels[i];
@@ -243,9 +262,11 @@ export default class InfluxQueryModel {
     let groupBySection = '';
     for (i = 0; i < this.groupByParts.length; i++) {
       const part = this.groupByParts[i];
+      if (part.def.type === 'fill') {
+        continue;
+      }
       if (i > 0) {
-        // for some reason fill has no separator
-        groupBySection += part.def.type === 'fill' ? ' ' : ', ';
+        groupBySection += ', ';
       }
       groupBySection += part.render('');
     }
@@ -254,21 +275,21 @@ export default class InfluxQueryModel {
       query += ' GROUP BY ' + groupBySection;
     }
 
-    if (target.fill) {
-      query += ' fill(' + target.fill + ')';
-    }
+    // if (target.fill) {
+    //   query += ' fill(' + target.fill + ')';
+    // }
 
     if (target.orderByTime === 'DESC') {
       query += ' ORDER BY time DESC';
+    } else {
+      query += ' ORDER BY time ASC';
     }
 
     if (target.limit) {
       query += ' LIMIT ' + target.limit;
     }
 
-    if (target.tz) {
-      query += " tz('" + target.tz + "')";
-    }
+    console.log('Render query result', query);
 
     return query;
   }
@@ -280,5 +301,6 @@ export default class InfluxQueryModel {
     return conditions.join(' ');
   }
 
-  replace() {}
+  replace() {
+  }
 }

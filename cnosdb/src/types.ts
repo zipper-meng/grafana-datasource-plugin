@@ -1,4 +1,4 @@
-import { DataQuery, DataSourceJsonData } from '@grafana/data';
+import {DataQuery, DataSourceJsonData} from '@grafana/data';
 
 /**
  * These are options configured for each DataSource instance
@@ -18,7 +18,7 @@ export interface MyDataSourceOptions extends DataSourceJsonData {
 /**
  * Value that is used in the backend, but never sent over HTTP to the frontend
  */
- export interface MySecureJsonData {
+export interface MySecureJsonData {
   password?: string;
 }
 
@@ -26,7 +26,9 @@ export interface MyQuery extends DataQuery {
   table?: string;
   select: SelectItem[][];
   tags?: TagItem[];
+  rawTagsExpr?: string;
   groupBy?: SelectItem[];
+  interval?: string;
   fill?: string;
   orderByTime?: string;
   limit?: string | number;

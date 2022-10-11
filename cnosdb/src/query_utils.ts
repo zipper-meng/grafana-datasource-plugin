@@ -1,11 +1,11 @@
-import { cloneDeep } from 'lodash';
+import {cloneDeep} from 'lodash';
 
-import { MyQuery } from './types';
-import InfluxQueryModel from './influxql_query_model';
+import {MyQuery} from './types';
+import CnosdbQueryModel from './cnosql_query_model';
 
 export function buildRawQuery(query: MyQuery): string {
   const queryCopy = cloneDeep(query);
-  const model = new InfluxQueryModel(queryCopy);
+  const model = new CnosdbQueryModel(queryCopy);
   return model.render(false);
 }
 
@@ -21,19 +21,20 @@ export function normalizeQuery(query: MyQuery): MyQuery {
   }
 
   const queryCopy = cloneDeep(query);
-  return new InfluxQueryModel(queryCopy).target;
+  const model = new CnosdbQueryModel(queryCopy);
+  return model.target;
 }
 
 export function addNewSelectPart(query: MyQuery, type: string, index: number): MyQuery {
   const queryCopy = cloneDeep(query);
-  const model = new InfluxQueryModel(queryCopy);
+  const model = new CnosdbQueryModel(queryCopy);
   model.addSelectPart(model.selectModels[index], type);
   return model.target;
 }
 
 export function removeSelectPart(query: MyQuery, partIndex: number, index: number): MyQuery {
   const queryCopy = cloneDeep(query);
-  const model = new InfluxQueryModel(queryCopy);
+  const model = new CnosdbQueryModel(queryCopy);
   const selectModel = model.selectModels[index];
   model.removeSelectPart(selectModel, selectModel[partIndex]);
   return model.target;
@@ -47,19 +48,19 @@ export function changeSelectPart(query: MyQuery, listIndex: number, partIndex: n
     ...newSel[listIndex][partIndex],
     params: newParams,
   };
-  return { ...query, select: newSel };
+  return {...query, select: newSel};
 }
 
 export function addNewGroupByPart(query: MyQuery, type: string): MyQuery {
   const queryCopy = cloneDeep(query);
-  const model = new InfluxQueryModel(queryCopy);
+  const model = new CnosdbQueryModel(queryCopy);
   model.addGroupBy(type);
   return model.target;
 }
 
 export function removeGroupByPart(query: MyQuery, partIndex: number): MyQuery {
   const queryCopy = cloneDeep(query);
-  const model = new InfluxQueryModel(queryCopy);
+  const model = new CnosdbQueryModel(queryCopy);
   model.removeGroupByPart(model.groupByParts[partIndex], partIndex);
   return model.target;
 }
@@ -71,5 +72,5 @@ export function changeGroupByPart(query: MyQuery, partIndex: number, newParams: 
     ...newGroupBy[partIndex],
     params: newParams,
   };
-  return { ...query, groupBy: newGroupBy };
+  return {...query, groupBy: newGroupBy};
 }

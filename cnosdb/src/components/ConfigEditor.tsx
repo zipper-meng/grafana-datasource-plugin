@@ -1,6 +1,6 @@
-import { uniqueId } from 'lodash';
-import React, { PureComponent, ChangeEvent } from 'react';
-import { Base64 } from 'js-base64';
+import {uniqueId} from 'lodash';
+import React, {ChangeEvent, PureComponent} from 'react';
+import {Base64} from 'js-base64';
 
 import {
   DataSourcePluginOptionsEditorProps,
@@ -8,11 +8,11 @@ import {
   updateDatasourcePluginJsonDataOption,
   updateDatasourcePluginResetOption,
 } from '@grafana/data';
-import { Alert, InlineField, InlineFormLabel, LegacyForms, LegacyInputStatus } from '@grafana/ui';
+import {Alert, InlineField, InlineFormLabel, LegacyForms, LegacyInputStatus} from '@grafana/ui';
 
-import { MyDataSourceOptions, MySecureJsonData } from '../types';
+import {MyDataSourceOptions, MySecureJsonData} from '../types';
 
-const { Input, SecretFormField } = LegacyForms;
+const {Input, SecretFormField} = LegacyForms;
 
 type ConfigInputProps = {
   label: string;
@@ -21,7 +21,7 @@ type ConfigInputProps = {
   value: string;
 };
 
-const ConfigInput = ({ label, htmlPrefix, onChange, value }: ConfigInputProps): JSX.Element => {
+const ConfigInput = ({label, htmlPrefix, onChange, value}: ConfigInputProps): JSX.Element => {
   return (
     <div className="gf-form-inline">
       <div className="gf-form">
@@ -29,7 +29,7 @@ const ConfigInput = ({ label, htmlPrefix, onChange, value }: ConfigInputProps): 
           {label}
         </InlineFormLabel>
         <div className="width-20">
-          <Input id={htmlPrefix} className="width-20" value={value || ''} onChange={onChange} />
+          <Input id={htmlPrefix} className="width-20" value={value || ''} onChange={onChange}/>
         </div>
       </div>
     </div>
@@ -59,7 +59,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
   };
 
   onUserChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
+    const {onOptionsChange, options} = this.props;
     onOptionsChange({
       ...options,
       jsonData: {
@@ -71,7 +71,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
   };
 
   onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
+    const {onOptionsChange, options} = this.props;
     onOptionsChange({
       ...options,
       secureJsonData: {
@@ -83,7 +83,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
   };
 
   onAuthChange = (user?: string, password?: string) => {
-    const { options } = this.props;
+    const {options} = this.props;
 
     if (!user) {
       user = options.jsonData.user;
@@ -106,11 +106,11 @@ export class ConfigEditor extends PureComponent<Props, State> {
   };
 
   render() {
-    const { options } = this.props;
-    const { secureJsonFields, jsonData } = options;
+    const {options} = this.props;
+    const {secureJsonFields, jsonData} = options;
 
     // TODO: Add proxy mode (need Golang codes).
-    options.access = 'direct';
+    // options.access = 'direct';
     let secureJsonData;
     if (options.secureJsonData) {
       secureJsonData = options.secureJsonData as MySecureJsonData;
@@ -202,7 +202,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
                 onChange={(event) => {
                   // We duplicate this state so that we allow to write freely inside the input. We don't have
                   // any influence over saving so this seems to be only way to do this.
-                  this.setState({ maxSeries: event.currentTarget.value });
+                  this.setState({maxSeries: event.currentTarget.value});
                   const val = parseInt(event.currentTarget.value, 10);
                   updateDatasourcePluginJsonDataOption(this.props, 'maxSeries', Number.isFinite(val) ? val : undefined);
                 }}

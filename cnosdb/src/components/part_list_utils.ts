@@ -1,11 +1,11 @@
-import { SelectableValue } from '@grafana/data';
+import {SelectableValue} from '@grafana/data';
 
-import { QueryPartDef } from '../query_part';
-import InfluxQueryModel from '../influxql_query_model';
-import queryPart from '../influxql_query_part';
-import { MyQuery, SelectItem } from '../types';
-import { toSelectableValue, unwrap } from '../utils';
-import { PartParams } from './PartListSection';
+import {QueryPartDef} from '../query_part';
+import CnosdbQueryModel from '../cnosql_query_model';
+import queryPart from '../cnosql_query_part';
+import {MyQuery, SelectItem} from '../types';
+import {toSelectableValue, unwrap} from '../utils';
+import {PartParams} from './PartListSection';
 
 type Categories = Record<string, QueryPartDef[]>;
 
@@ -32,8 +32,8 @@ export async function getNewGroupByPartOptions(
   getTagKeys: () => Promise<string[]>
 ): Promise<Array<SelectableValue<string>>> {
   const tagKeys = await getTagKeys();
-  const queryCopy = { ...query };
-  const model = new InfluxQueryModel(queryCopy);
+  const queryCopy = {...query};
+  const model = new CnosdbQueryModel(queryCopy);
   const options: Array<SelectableValue<string>> = [];
   if (!model.hasFill()) {
     options.push(toSelectableValue('fill(null)'));

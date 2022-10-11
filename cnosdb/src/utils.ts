@@ -1,9 +1,9 @@
-import { uniqueId } from 'lodash';
-import { useRef } from 'react';
+import {uniqueId} from 'lodash';
+import {useRef} from 'react';
 
-import { SelectableValue } from '@grafana/data';
+import {SelectableValue} from '@grafana/data';
 
-import { TagItem } from './types';
+import {TagItem} from './types';
 
 function isRegex(text: string): boolean {
   return /^\/.*\/$/.test(text);
@@ -16,6 +16,13 @@ export function regexEscape(value: string) {
 export function unwrap<T>(value: T | null | undefined): T {
   if (value == null) {
     throw new Error('value must not be nullish');
+  }
+  return value;
+}
+
+export function unwrap_or<T>(value: T | null | undefined, defaultVal: T): T {
+  if (value == null) {
+    return defaultVal;
   }
   return value;
 }
@@ -36,15 +43,13 @@ export function useUniqueId(): string {
 }
 
 export function toSelectableValue<T extends string>(t: T): SelectableValue<T> {
-  return { label: t, value: t };
+  return {label: t, value: t};
 }
 
 export function getOperator(tag: TagItem): string {
   return tag.operator ?? (isRegex(tag.value) ? '=~' : '=');
 }
 
-// FIXME: sync these to the query-string-generation-code
-// probably it's in influx_query_model.ts
 export function getCondition(tag: TagItem, isFirst: boolean): string | undefined {
   return isFirst ? undefined : tag.condition ?? 'AND';
 }

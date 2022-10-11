@@ -6,7 +6,7 @@ import axios, {
   CancelToken,
   CancelTokenSource,
 } from 'axios';
-import { defer, map, Observable } from 'rxjs';
+import {defer, map, Observable} from 'rxjs';
 
 export const AXIOS_SYSTEM_ERROR_CODE = [
   'ECONNREFUSED',
@@ -39,7 +39,8 @@ export type BodyData = string | PlainObject | ArrayBuffer | ArrayBufferView | UR
 export type HttpParameter = PlainObject | URLSearchParams;
 
 export type HttpHeader = {
-  user_id: '123';
+  Accept: string;
+  Authorization: string;
 };
 
 /**
@@ -70,7 +71,7 @@ class HttpClient {
    */
   constructor(baseURL?: string) {
     this.service = axios.create({
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      headers: {'content-type': 'text/plain'},
       maxContentLength: Infinity,
       httpsAgent: Infinity,
       withCredentials: false,
@@ -122,7 +123,7 @@ class HttpClient {
     return this.createDeferredObservable(
       this.service.get<T>(path, {
         params: queryParams,
-        headers: { 'content-type': 'application/json' },
+        headers: {'content-type': 'application/json'},
         responseType: 'json',
         cancelToken,
       })
@@ -250,4 +251,4 @@ const httpClient = new HttpClient();
 export default httpClient;
 
 // Export HttpClient class, support for typing and create another instance
-export { HttpClient };
+export {HttpClient};

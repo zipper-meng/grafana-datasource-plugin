@@ -4,7 +4,7 @@
   "name": "CnosDB",
   "id": "cnosdb-grafana-datasource",
   "metrics": true,
-  "backend": false,
+  "backend": true,
   "executable": "gpx_cnosdb",
   "info": {
     "description": "A grafana data source plugin for CnosDB.",
