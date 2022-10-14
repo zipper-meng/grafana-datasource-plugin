@@ -87,7 +87,7 @@ export const VisualQueryEditor = (props: Props): JSX.Element => {
 
   return (
     <div>
-      <SegmentSection label="FROM" fill={true}>
+      <SegmentSection label="FROM" fill={false}>
         <FromSection
           table={table}
           onChange={handleFromSectionChange}

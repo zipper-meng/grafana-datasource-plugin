@@ -39,7 +39,7 @@ func NewCnosDatasource(instanceSettings backend.DataSourceInstanceSettings) (ins
 		return nil, err
 	}
 
-	log.DefaultLogger.Info(fmt.Sprintf("Building datasource: URL: '%s', db: '%s', auth: '%s'",
+	log.DefaultLogger.Info(fmt.Sprintf("Building datasource: URL: '%s', db: '%s'",
 		instanceSettings.URL, instanceSettings.Database))
 
 	return &CnosDatasource{
@@ -75,15 +75,15 @@ func (d *CnosDatasource) Dispose() {
 func (d *CnosDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	log.DefaultLogger.Info("CnosDB query", "request", req)
 
-	// create response struct
+	// Create response struct
 	response := backend.NewQueryDataResponse()
 
-	// loop over queries and execute them individually.
+	// Loop over queries and execute them individually.
+	// TODO: Use goroutine instead of serial execution.
 	for _, q := range req.Queries {
 		res := d.query(ctx, req, q)
 
-		// save the response in a hashmap
-		// based on with RefID as identifier
+		// Save the response in a hashmap based on with RefID as identifier
 		response.Responses[q.RefID] = res
 	}
 
@@ -115,16 +115,11 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 	dbgQueryModel, _ := json.Marshal(queryModel)
 	log.DefaultLogger.Info("CnosDB query model", "model", string(dbgQueryModel))
 
-	// build sql
-	var sql string
-	if queryModel.RawQuery {
-		sql = queryModel.QueryText
-	} else {
-		sql, err = queryModel.Build(queryContext)
-		if err != nil {
-			response.Error = err
-			return response
-		}
+	// Build sql
+	sql, err := queryModel.Build(queryContext)
+	if err != nil {
+		response.Error = err
+		return response
 	}
 	log.DefaultLogger.Info("CnosDB query sql", "sql", sql)
 
@@ -136,7 +131,7 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 	req.Header.Set("Authorization", "Basic "+auth)
 	req.Header.Set("Accept", "application/json")
 
-	// handle response
+	// Handle response
 	res, err := d.client.Do(req)
 	if err != nil {
 		response.Error = err
@@ -157,42 +152,50 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 	log.DefaultLogger.Info("CnosDB query response", "response", string(queryData))
 
 	var resRows []map[string]interface{}
-	if err := json.NewDecoder(bytes.NewReader(queryData)).Decode(&resRows); err != nil {
-		log.DefaultLogger.Error("Failed to decode request jsonData", "err", err)
-		response.Error = err
-		return response
+	var resultNotEmpty bool = true
+	if len(queryData) > 0 {
+		if err := json.NewDecoder(bytes.NewReader(queryData)).Decode(&resRows); err != nil {
+			log.DefaultLogger.Error("Failed to decode request jsonData", "err", err)
+			response.Error = err
+			return response
+		}
+		log.DefaultLogger.Info("CnosDB query response rows", "rows", resRows)
+	} else {
+		resultNotEmpty = false
 	}
-	log.DefaultLogger.Info("CnosDB query response rows", "rows", resRows)
 
-	// create data frame response.
+	// Create data frame response.
 	frame := data.NewFrame("response")
 	timeArray := make([]time.Time, len(resRows))
-	valueArrayMap := make(map[string][]float64)
+	valueArrayMap := make(map[string][]*float64)
 	var columnArray []string
 
-	for i, row := range resRows {
-		for col, val := range row {
-			if col == "time" {
-				parsedTime, err := ParseTimeString(val.(string))
-				if err != nil {
-					log.DefaultLogger.Error("Failed to convert to time", "err", err)
-					response.Error = err
-					return response
+	if resultNotEmpty {
+		for i, row := range resRows {
+			for col, val := range row {
+				if col == "time" {
+					parsedTime, err := ParseTimeString(val.(string))
+					if err != nil {
+						log.DefaultLogger.Error("Failed to convert to time", "err", err)
+						response.Error = err
+						return response
+					}
+					timeArray[i] = parsedTime
+				} else {
+					valArr, ok := valueArrayMap[col]
+					if !ok {
+						valArr = make([]*float64, len(resRows))
+						columnArray = append(columnArray, col)
+						valueArrayMap[col] = valArr
+					}
+					v := val.(float64)
+					valArr[i] = &v
 				}
-				timeArray[i] = parsedTime
-			} else {
-				valArr, ok := valueArrayMap[col]
-				if !ok {
-					valArr = make([]float64, len(resRows))
-					columnArray = append(columnArray, col)
-					valueArrayMap[col] = valArr
-				}
-				valArr[i] = val.(float64)
 			}
 		}
 	}
 
-	// add fields.
+	// Add fields.
 	frame.Fields = append(frame.Fields,
 		data.NewField("time", nil, timeArray),
 	)
@@ -200,9 +203,9 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 		frame.Fields = append(frame.Fields, data.NewField(col, nil, valueArrayMap[col]))
 	}
 
-	// resample if needed
-	if queryModel.Fill != "" {
-		log.DefaultLogger.Info("Fill detected, need resample")
+	// Resample if needed
+	if resultNotEmpty && queryModel.Fill != "" {
+		log.DefaultLogger.Info("Fill detected, need Resample")
 		var fillMode data.FillMode
 		var fillValue float64 = 0
 		switch strings.ToLower(queryModel.Fill) {
@@ -224,20 +227,20 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 		interval := ParseIntervalString(queryModel.Interval)
 		log.DefaultLogger.Info("Resample-2", fmt.Sprintf("interval: %s -> %d", queryModel.Interval, interval))
 		if interval != 0 {
-			log.DefaultLogger.Info("Begin resample")
-			frame, err = resample(frame, interval, query.TimeRange, &data.FillMissing{
+			log.DefaultLogger.Info("Begin Resample")
+			frame, err = Resample(frame, interval, query.TimeRange, &data.FillMissing{
 				Mode:  fillMode,
 				Value: fillValue,
 			})
-			log.DefaultLogger.Info("End resample")
+			log.DefaultLogger.Info("End Resample")
 			if err != nil {
-				log.DefaultLogger.Error("Failed to resample dataframe", "err", err)
-				frame.AppendNotices(data.Notice{Text: "Failed to resample dataframe", Severity: data.NoticeSeverityWarning})
+				log.DefaultLogger.Error("Failed to Resample dataframe", "err", err)
+				frame.AppendNotices(data.Notice{Text: "Failed to Resample dataframe", Severity: data.NoticeSeverityWarning})
 			}
 		}
 	}
 
-	// add the frames to the response.
+	// Add the frames to the response.
 	response.Frames = append(response.Frames, frame)
 
 	return response

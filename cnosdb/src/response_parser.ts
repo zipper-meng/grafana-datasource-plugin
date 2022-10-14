@@ -168,7 +168,7 @@ function getTableCols(dfs: DataFrame[], table: TableModel, target: CnosQuery): T
     }
 
     // Group by (label) column(s)
-    else if (field.name === 'value') {
+    else if (field.name === 'default_field') {
       if (field.labels) {
         Object.keys(field.labels).forEach((key) => {
           table.columns.push({text: key});

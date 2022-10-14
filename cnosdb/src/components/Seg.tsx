@@ -170,13 +170,13 @@ const defaultButtonClass = css({
 });
 
 export const Seg = ({
-                      value,
-                      buttonClassName,
-                      loadOptions,
-                      filterByLoadOptions,
-                      allowCustomValue,
-                      onChange,
-                    }: Props): JSX.Element => {
+  value,
+  buttonClassName,
+  loadOptions,
+  filterByLoadOptions,
+  allowCustomValue,
+  onChange,
+}: Props): JSX.Element => {
   const [isOpen, setOpen] = useState(false);
   if (!isOpen) {
     const className = cx(defaultButtonClass, buttonClassName);

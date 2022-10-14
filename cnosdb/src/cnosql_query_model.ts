@@ -31,7 +31,7 @@ export default class CnosQueryModel {
     ];
     target.select = target.select || [
       [
-        {type: 'field', params: ['value']},
+        {type: 'field', params: ['default_field']},
         {type: 'avg', params: []},
       ],
     ];

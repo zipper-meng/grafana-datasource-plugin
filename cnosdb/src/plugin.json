@@ -5,10 +5,10 @@
   "id": "cnosdb-grafana-datasource",
   "category": "tsdb",
 
-  "alerting": false,
-  "annotations": false,
-  "logs": false,
-  "metrics": false,
+  "alerting": true,
+  "annotations": true,
+  "logs": true,
+  "metrics": true,
   "streaming": false,
   "tracing": false,
 
