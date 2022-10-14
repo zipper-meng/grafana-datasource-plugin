@@ -3,13 +3,13 @@ import {filter, find, indexOf, map} from 'lodash';
 import {ScopedVars} from '@grafana/data';
 import {TemplateSrv} from '@grafana/runtime';
 
-import {MyQuery, SelectItem, TagItem} from './types';
+import {CnosQuery, SelectItem, TagItem} from './types';
 import {QueryPart} from './query_part';
 import {regexEscape} from './utils';
 import queryPart from './cnosql_query_part';
 
-export default class CnosdbQueryModel {
-  target: MyQuery;
+export default class CnosQueryModel {
+  target: CnosQuery;
   selectModels: any[] = [];
   queryBuilder: any;
   groupByParts: any;
@@ -18,7 +18,7 @@ export default class CnosdbQueryModel {
   refId?: string;
 
   /** @ngInject */
-  constructor(target: MyQuery, templateSrv?: TemplateSrv, scopedVars?: ScopedVars) {
+  constructor(target: CnosQuery, templateSrv?: TemplateSrv, scopedVars?: ScopedVars) {
     this.target = target;
     this.templateSrv = templateSrv;
     this.scopedVars = scopedVars;

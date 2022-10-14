@@ -5,7 +5,7 @@ import {GrafanaTheme2} from '@grafana/data';
 import {InlineLabel, SegmentSection, useStyles2} from '@grafana/ui';
 
 import {DataSource} from '../datasource';
-import {MyQuery} from '../types';
+import {CnosQuery} from '../types';
 import {
   addNewGroupByPart,
   addNewSelectPart,
@@ -37,8 +37,8 @@ import {InputSection} from './InputSection';
 // }
 
 type Props = {
-  query: MyQuery;
-  onChange: (query: MyQuery) => void;
+  query: CnosQuery;
+  onChange: (query: CnosQuery) => void;
   onRunQuery: () => void;
   datasource: DataSource;
 };
@@ -66,7 +66,7 @@ export const VisualQueryEditor = (props: Props): JSX.Element => {
     ],
   ]));
 
-  const onAppliedChange = (newQuery: MyQuery) => {
+  const onAppliedChange = (newQuery: CnosQuery) => {
     props.onChange(newQuery);
     props.onRunQuery();
   };
