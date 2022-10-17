@@ -2,10 +2,11 @@ import {css, cx} from '@emotion/css';
 import React, {useMemo} from 'react';
 
 import {GrafanaTheme2, SelectableValue} from '@grafana/data';
-import {Input, MenuGroup, MenuItem, useTheme2, WithContextMenu} from '@grafana/ui';
+import {MenuGroup, MenuItem, useTheme2, WithContextMenu} from '@grafana/ui';
 
+import {toSelectableValue, unwrap} from '../utils';
 import {AddButton} from './AddButton';
-import {unwrap} from 'utils';
+import {Seg} from "./Seg";
 
 export type PartParams = Array<{
   value: string;
@@ -88,19 +89,32 @@ const Part = ({name, params, onChange, onRemove}: PartProps): JSX.Element => {
     <div className={partClass}>
       <RemovableName name={name} onRemove={onRemove}/>(
       {params.map((p, i) => {
-        const {value} = p;
+        const {value, options} = p;
         const isLast = i === params.length - 1;
+        const loadOptions =
+          options !== null ? () => options().then((items) => items.map(toSelectableValue)) : undefined;
         return (
           <React.Fragment key={i}>
-            <Input
-              type="text"
-              placeholder="Field"
+            <Seg
+              allowCustomValue
               value={value}
-              width={10}
+              loadOptions={loadOptions}
               onChange={(v) => {
-                onParamChange(unwrap(v.currentTarget.value), i);
+                onParamChange(unwrap(v.value), i);
               }}
             />
+            {/*<Input*/}
+            {/*  type="text"*/}
+            {/*  placeholder="Field"*/}
+            {/*  value={currentValue}*/}
+            {/*  width={10}*/}
+            {/*  onChange={(e) => {*/}
+            {/*    setCurrentValue(e.currentTarget.value);*/}
+            {/*  }}*/}
+            {/*  onBlur={(e) => {*/}
+            {/*    onParamChange(unwrap(e.currentTarget.value), i);*/}
+            {/*  }}*/}
+            {/*/>*/}
             {!isLast && ','}
           </React.Fragment>
         );
@@ -111,12 +125,12 @@ const Part = ({name, params, onChange, onRemove}: PartProps): JSX.Element => {
 };
 
 export const PartListSection = ({
-                                  parts,
-                                  getNewPartOptions,
-                                  onAddNewPart,
-                                  onRemovePart,
-                                  onChange,
-                                }: Props): JSX.Element => {
+  parts,
+  getNewPartOptions,
+  onAddNewPart,
+  onRemovePart,
+  onChange,
+}: Props): JSX.Element => {
   return (
     <>
       {parts.map((part, index) => (

@@ -1,15 +1,15 @@
 import {cloneDeep} from 'lodash';
 
-import {MyQuery} from './types';
-import CnosdbQueryModel from './cnosql_query_model';
+import {CnosQuery} from './types';
+import CnosQueryModel from './cnosql_query_model';
 
-export function buildRawQuery(query: MyQuery): string {
+export function buildRawQuery(query: CnosQuery): string {
   const queryCopy = cloneDeep(query);
-  const model = new CnosdbQueryModel(queryCopy);
+  const model = new CnosQueryModel(queryCopy);
   return model.render(false);
 }
 
-export function normalizeQuery(query: MyQuery): MyQuery {
+export function normalizeQuery(query: CnosQuery): CnosQuery {
   // we return the original query if there is no need to update it
   if (
     query.orderByTime !== undefined &&
@@ -21,26 +21,26 @@ export function normalizeQuery(query: MyQuery): MyQuery {
   }
 
   const queryCopy = cloneDeep(query);
-  const model = new CnosdbQueryModel(queryCopy);
+  const model = new CnosQueryModel(queryCopy);
   return model.target;
 }
 
-export function addNewSelectPart(query: MyQuery, type: string, index: number): MyQuery {
+export function addNewSelectPart(query: CnosQuery, type: string, index: number): CnosQuery {
   const queryCopy = cloneDeep(query);
-  const model = new CnosdbQueryModel(queryCopy);
+  const model = new CnosQueryModel(queryCopy);
   model.addSelectPart(model.selectModels[index], type);
   return model.target;
 }
 
-export function removeSelectPart(query: MyQuery, partIndex: number, index: number): MyQuery {
+export function removeSelectPart(query: CnosQuery, partIndex: number, index: number): CnosQuery {
   const queryCopy = cloneDeep(query);
-  const model = new CnosdbQueryModel(queryCopy);
+  const model = new CnosQueryModel(queryCopy);
   const selectModel = model.selectModels[index];
   model.removeSelectPart(selectModel, selectModel[partIndex]);
   return model.target;
 }
 
-export function changeSelectPart(query: MyQuery, listIndex: number, partIndex: number, newParams: string[]): MyQuery {
+export function changeSelectPart(query: CnosQuery, listIndex: number, partIndex: number, newParams: string[]): CnosQuery {
   // we need to make shallow copy of `query.select` down to `query.select[listIndex][partIndex]`
   const newSel = [...(query.select ?? [])];
   newSel[listIndex] = [...newSel[listIndex]];
@@ -51,21 +51,21 @@ export function changeSelectPart(query: MyQuery, listIndex: number, partIndex: n
   return {...query, select: newSel};
 }
 
-export function addNewGroupByPart(query: MyQuery, type: string): MyQuery {
+export function addNewGroupByPart(query: CnosQuery, type: string): CnosQuery {
   const queryCopy = cloneDeep(query);
-  const model = new CnosdbQueryModel(queryCopy);
+  const model = new CnosQueryModel(queryCopy);
   model.addGroupBy(type);
   return model.target;
 }
 
-export function removeGroupByPart(query: MyQuery, partIndex: number): MyQuery {
+export function removeGroupByPart(query: CnosQuery, partIndex: number): CnosQuery {
   const queryCopy = cloneDeep(query);
-  const model = new CnosdbQueryModel(queryCopy);
+  const model = new CnosQueryModel(queryCopy);
   model.removeGroupByPart(model.groupByParts[partIndex], partIndex);
   return model.target;
 }
 
-export function changeGroupByPart(query: MyQuery, partIndex: number, newParams: string[]): MyQuery {
+export function changeGroupByPart(query: CnosQuery, partIndex: number, newParams: string[]): CnosQuery {
   // we need to make shallow copy of `query.groupBy` down to `query.groupBy[partIndex]`
   const newGroupBy = [...(query.groupBy ?? [])];
   newGroupBy[partIndex] = {

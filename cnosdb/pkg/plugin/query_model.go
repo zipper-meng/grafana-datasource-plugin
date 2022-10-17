@@ -70,6 +70,9 @@ func (query *QueryModel) Introspect() error {
 		}
 		s.Def = &def
 	}
+	if query.RawQuery {
+		query.Fill = ""
+	}
 
 	return nil
 }

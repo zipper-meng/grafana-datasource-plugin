@@ -41,6 +41,10 @@ function fieldRenderer(part: { params: string[] }, innerExpr: any) {
   return '"' + part.params[0] + '"';
 }
 
+export function timeRenderer(part: any, innerExpr: string) {
+  return 'time'
+}
+
 function replaceAggregationAddStrategy(selectParts: any[], partModel: { def: { type: string } }) {
   // look for existing aggregation
   for (let i = 0; i < selectParts.length; i++) {
@@ -105,8 +109,8 @@ register({
   type: 'field',
   addStrategy: addFieldStrategy,
   category: categories.Fields,
-  params: [{type: 'field', dynamicLookup: true}],
-  defaultParams: ['value'],
+  params: [{type: 'field'}],
+  defaultParams: ['default_field'],
   renderer: fieldRenderer,
 });
 
@@ -188,7 +192,7 @@ register({
     },
   ],
   defaultParams: ['$__interval'],
-  renderer: functionRenderer,
+  renderer: timeRenderer,
 });
 
 register({
@@ -198,7 +202,7 @@ register({
     {
       name: 'fill',
       type: 'string',
-      options: ['none', 'null', '0', 'previous'],
+      options: ['null', '0', 'previous'],
     },
   ],
   defaultParams: ['null'],

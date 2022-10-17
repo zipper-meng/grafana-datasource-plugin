@@ -3,9 +3,22 @@
   "type": "datasource",
   "name": "CnosDB",
   "id": "cnosdb-grafana-datasource",
+  "category": "tsdb",
+
+  "alerting": true,
+  "annotations": true,
+  "logs": true,
   "metrics": true,
+  "streaming": false,
+  "tracing": false,
+
   "backend": true,
   "executable": "gpx_cnosdb",
+
+  "queryOptions": {
+    "minInterval": true
+  },
+
   "info": {
     "description": "A grafana data source plugin for CnosDB.",
     "author": {

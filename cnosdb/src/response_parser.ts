@@ -3,7 +3,7 @@ import {each, flatten, groupBy, isArray} from 'lodash';
 import {AnnotationEvent, DataFrame, DataQuery, FieldType, QueryResultMeta} from '@grafana/data';
 import {toDataQueryResponse} from '@grafana/runtime';
 
-import {MyQuery} from './types';
+import {CnosQuery} from './types';
 import TableModel from './table_model';
 
 export default class ResponseParser {
@@ -50,7 +50,7 @@ export default class ResponseParser {
     return Array.from(res).map((v) => ({text: v}));
   }
 
-  getTable(dfs: DataFrame[], target: MyQuery, meta: QueryResultMeta): TableModel {
+  getTable(dfs: DataFrame[], target: CnosQuery, meta: QueryResultMeta): TableModel {
     let table = new TableModel();
 
     if (dfs.length > 0) {
@@ -81,7 +81,7 @@ export default class ResponseParser {
     return table;
   }
 
-  async transformAnnotationResponse(annotation: any, data: any, target: MyQuery): Promise<AnnotationEvent[]> {
+  async transformAnnotationResponse(annotation: any, data: any, target: CnosQuery): Promise<AnnotationEvent[]> {
     const rsp = toDataQueryResponse(data, [target] as DataQuery[]);
 
     if (rsp) {
@@ -158,7 +158,7 @@ function colContainsTag(colText: string, tagsColumn: string): boolean {
   return false;
 }
 
-function getTableCols(dfs: DataFrame[], table: TableModel, target: MyQuery): TableModel {
+function getTableCols(dfs: DataFrame[], table: TableModel, target: CnosQuery): TableModel {
   const selectedParams = getSelectedParams(target);
 
   dfs[0].fields.forEach((field) => {
@@ -168,7 +168,7 @@ function getTableCols(dfs: DataFrame[], table: TableModel, target: MyQuery): Tab
     }
 
     // Group by (label) column(s)
-    else if (field.name === 'value') {
+    else if (field.name === 'default_field') {
       if (field.labels) {
         Object.keys(field.labels).forEach((key) => {
           table.columns.push({text: key});
@@ -209,7 +209,7 @@ function getTableRows(dfs: DataFrame[], table: TableModel, labels: string[]): Ta
   return table;
 }
 
-export function getSelectedParams(target: MyQuery): string[] {
+export function getSelectedParams(target: CnosQuery): string[] {
   let allParams: string[] = [];
   target.select?.forEach((select) => {
     const selector = select.filter((x) => x.type !== 'field');

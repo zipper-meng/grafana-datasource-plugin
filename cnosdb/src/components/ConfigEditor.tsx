@@ -4,13 +4,12 @@ import {Base64} from 'js-base64';
 
 import {
   DataSourcePluginOptionsEditorProps,
-  onUpdateDatasourceJsonDataOption,
-  updateDatasourcePluginJsonDataOption,
+  onUpdateDatasourceOption,
   updateDatasourcePluginResetOption,
 } from '@grafana/data';
-import {Alert, InlineField, InlineFormLabel, LegacyForms, LegacyInputStatus} from '@grafana/ui';
+import {InlineFormLabel, LegacyForms, LegacyInputStatus} from '@grafana/ui';
 
-import {MyDataSourceOptions, MySecureJsonData} from '../types';
+import {CnosDataSourceOptions, CnosSecureJsonData} from '../types';
 
 const {Input, SecretFormField} = LegacyForms;
 
@@ -36,97 +35,60 @@ const ConfigInput = ({label, htmlPrefix, onChange, value}: ConfigInputProps): JS
   );
 };
 
-export type Props = DataSourcePluginOptionsEditorProps<MyDataSourceOptions>;
+export type Props = DataSourcePluginOptionsEditorProps<CnosDataSourceOptions, CnosSecureJsonData>;
 type State = {
   maxSeries: string | undefined;
 };
 
 export class ConfigEditor extends PureComponent<Props, State> {
-  state = {
-    maxSeries: '',
-  };
-
   htmlPrefix: string;
 
   constructor(props: Props) {
     super(props);
-    this.state.maxSeries = this.props.options.jsonData.maxSeries?.toString() || '';
     this.htmlPrefix = uniqueId('cnosdb-config');
   }
-
-  onDsJsonDataChange = (property: keyof MyDataSourceOptions) => {
-    return onUpdateDatasourceJsonDataOption(this.props, property);
-  };
-
-  onUserChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const {onOptionsChange, options} = this.props;
-    onOptionsChange({
-      ...options,
-      jsonData: {
-        ...options.jsonData,
-        user: event.target.value,
-      },
-    });
-    this.onAuthChange(event.target.value, undefined);
-  };
-
-  onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const {onOptionsChange, options} = this.props;
-    onOptionsChange({
-      ...options,
-      secureJsonData: {
-        ...options.secureJsonData,
-        password: event.target.value,
-      },
-    });
-    this.onAuthChange(undefined, event.target.value);
-  };
-
-  onAuthChange = (user?: string, password?: string) => {
-    const {options} = this.props;
-
-    if (!user) {
-      user = options.jsonData.user;
-    }
-    if (!password) {
-      if (options.secureJsonData) {
-        password = (options.secureJsonData as MySecureJsonData).password;
-      } else {
-        password = '';
-      }
-    }
-
-    options.jsonData.auth = 'Basic ' + Base64.encode(user + ':' + password);
-    console.log('Generating new auth', user, password, options.jsonData.auth);
-    onUpdateDatasourceJsonDataOption(this.props, 'auth');
-  };
 
   onResetPassword = () => {
     updateDatasourcePluginResetOption(this.props, 'password');
   };
 
+  onUserChange = (event: ChangeEvent<HTMLInputElement>) => {
+    this.onAuthChange(event.target.value, undefined);
+  };
+
+  onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
+    this.onAuthChange(undefined, event.target.value);
+  };
+
+  onAuthChange = (user?: string, password?: string) => {
+    const {onOptionsChange, options} = this.props;
+    const secureJsonData = (options.secureJsonData || {});
+
+    if (!user) {
+      user = options.user;
+    }
+    if (!password) {
+      password = secureJsonData.password ?? ''
+    }
+
+    onOptionsChange({
+      ...options,
+      user: user,
+      secureJsonData: {
+        ...options.secureJsonData,
+        auth: Base64.encode(user + ':' + password),
+        password: password,
+      },
+    });
+  };
+
   render() {
     const {options} = this.props;
-    const {secureJsonFields, jsonData} = options;
-
-    // TODO: Add proxy mode (need Golang codes).
-    // options.access = 'direct';
-    let secureJsonData;
-    if (options.secureJsonData) {
-      secureJsonData = options.secureJsonData as MySecureJsonData;
-    } else {
-      secureJsonData = {} as MySecureJsonData;
-      options.secureJsonData = secureJsonData;
-    }
+    const {secureJsonFields} = options;
+    const secureJsonData = (options.secureJsonData || {});
 
     return (
       <>
-        {options.access === 'direct' && (
-          <Alert title="Deprecation Notice" severity="warning">
-            Browser access mode may produce CORS problems.
-          </Alert>
-        )}
-
         <div className="gf-form-group">
           <div>
             <h3 className="page-heading">CnosDB Connection</h3>
@@ -134,26 +96,26 @@ export class ConfigEditor extends PureComponent<Props, State> {
           <ConfigInput
             label="URL"
             htmlPrefix={`${this.htmlPrefix}-url`}
-            onChange={this.onDsJsonDataChange('url')}
-            value={jsonData.url || ''}
+            onChange={onUpdateDatasourceOption(this.props, 'url')}
+            value={options.url || ''}
           />
           <ConfigInput
             label="Database"
             htmlPrefix={`${this.htmlPrefix}-database`}
-            onChange={this.onDsJsonDataChange('database')}
-            value={jsonData.database || ''}
+            onChange={onUpdateDatasourceOption(this.props, 'database')}
+            value={options.database || ''}
           />
           <ConfigInput
             label="User"
             htmlPrefix={`${this.htmlPrefix}-user`}
             onChange={this.onUserChange}
-            value={jsonData.user || ''}
+            value={options.user || ''}
           />
           <div className="gf-form-inline">
             <div className="gf-form">
               <SecretFormField
-                isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
-                value={secureJsonData.password}
+                isConfigured={Boolean(secureJsonFields && secureJsonFields.password)}
+                value={secureJsonData.password ?? ''}
                 label="Password"
                 aria-label="Password"
                 labelWidth={10}
@@ -164,55 +126,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
             </div>
           </div>
         </div>
-
-        <div className="gf-form-group">
-          <div>
-            <h3 className="page-heading">CnosDB Details</h3>
-          </div>
-          <div className="gf-form-inline">
-            <div className="gf-form">
-              <InlineFormLabel
-                className="width-10"
-                tooltip="A lower limit for the auto group by time interval. Recommended to be set to write frequency,
-				for example 1m if your data is written every minute."
-              >
-                Min time interval
-              </InlineFormLabel>
-              <div className="width-10">
-                <Input
-                  className="width-10"
-                  placeholder="10s"
-                  value={jsonData.timeInterval || ''}
-                  onChange={this.onDsJsonDataChange('timeInterval')}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="gf-form-inline">
-            <InlineField
-              labelWidth={20}
-              label="Max series"
-              tooltip="Limit the number of series/tables that Grafana will process. Lower this number to prevent abuse, and increase it if you have lots of small time series and not all are shown. Defaults to 1000."
-            >
-              <Input
-                placeholder="1000"
-                type="number"
-                className="width-10"
-                value={this.state.maxSeries}
-                onChange={(event) => {
-                  // We duplicate this state so that we allow to write freely inside the input. We don't have
-                  // any influence over saving so this seems to be only way to do this.
-                  this.setState({maxSeries: event.currentTarget.value});
-                  const val = parseInt(event.currentTarget.value, 10);
-                  updateDatasourcePluginJsonDataOption(this.props, 'maxSeries', Number.isFinite(val) ? val : undefined);
-                }}
-              />
-            </InlineField>
-          </div>
-        </div>
       </>
     );
   }
 }
-
-export default ConfigEditor;

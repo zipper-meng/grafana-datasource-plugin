@@ -1,31 +1,26 @@
 import {Input} from '@grafana/ui';
 import React from 'react';
-
-// import { toSelectableValue } from '../utils';
-// import { Seg } from './Seg';
+import {useShadowedState} from "./use_shadowed_state";
 
 type FromSectionProps = {
   onChange: (table: string | undefined) => void;
   table: string | undefined;
 };
 
-// TODO FromSection:
-// > FROM $table: TableOptions
-// > Time column $time: $column in FieldOptions
-// > Metric column $metric: $column in TagOptions
-//   => sql: select "$time", "$metric", "$field" from "$table" group by "metric"
-export const FromSection = ({onChange, table}: FromSectionProps): JSX.Element => {
+// TODO Use <select/> to get FROM table.
+export const FromSection = ({table, onChange}: FromSectionProps): JSX.Element => {
+  const [currentValue, setCurrentValue] = useShadowedState(table);
   return (
     <Input
       type="text"
       placeholder="table"
       value={table}
       width={10}
-      onBlur={(e) => {
-        onChange(e.currentTarget.value);
-      }}
       onChange={(e) => {
-        onChange(e.currentTarget.value);
+        setCurrentValue(e.currentTarget.value);
+      }}
+      onBlur={(_) => {
+        onChange(currentValue);
       }}
     />
   );

@@ -2,13 +2,13 @@ import React from 'react';
 
 import {CodeEditor, HorizontalGroup, InlineFormLabel, Input} from '@grafana/ui';
 
-import {MyQuery} from '../types';
+import {CnosQuery} from '../types';
 import {useShadowedState} from './use_shadowed_state';
 import {useUniqueId} from './use_unique_id';
 
 type Props = {
-  query: MyQuery;
-  onChange: (query: MyQuery) => void;
+  query: CnosQuery;
+  onChange: (query: CnosQuery) => void;
   onRunQuery: () => void;
 };
 

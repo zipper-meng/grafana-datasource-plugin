@@ -3,26 +3,21 @@ import {DataQuery, DataSourceJsonData} from '@grafana/data';
 /**
  * These are options configured for each DataSource instance
  */
-export interface MyDataSourceOptions extends DataSourceJsonData {
+export interface CnosDataSourceOptions extends DataSourceJsonData {
   url?: string;
   database?: string;
   user?: string;
-  auth?: string;
-
-  timeInterval?: string;
-  httpMode?: string;
-
-  maxSeries?: number;
 }
 
 /**
  * Value that is used in the backend, but never sent over HTTP to the frontend
  */
-export interface MySecureJsonData {
+export interface CnosSecureJsonData {
+  auth?: string;
   password?: string;
 }
 
-export interface MyQuery extends DataQuery {
+export interface CnosQuery extends DataQuery {
   table?: string;
   select: SelectItem[][];
   tags?: TagItem[];

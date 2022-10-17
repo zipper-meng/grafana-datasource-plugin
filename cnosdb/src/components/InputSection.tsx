@@ -16,7 +16,7 @@ export const InputSection = ({value, onChange, isWide, placeholder}: Props): JSX
   const [currentValue, setCurrentValue] = useShadowedState(value);
 
   const onBlur = () => {
-    // we send empty-string as undefined
+    // Send empty-string as undefined
     const newValue = currentValue === '' ? undefined : currentValue;
     onChange(newValue);
   };

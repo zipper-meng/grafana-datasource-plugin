@@ -63,11 +63,11 @@ func getRowFillValues(f *data.Frame, tsSchema data.TimeSeriesSchema, currentTime
 	return vals
 }
 
-// resample resample provided time-series data.Frame.
+// Resample provided time-series data.Frame.
 // This is needed in the case of the selected query interval doesn't
 // match the intervals of the time-series field in the data.Frame and
 // therefore needs to be resampled.
-func resample(f *data.Frame, interval time.Duration, timeRange backend.TimeRange, fillMissing *data.FillMissing) (*data.Frame, error) {
+func Resample(f *data.Frame, interval time.Duration, timeRange backend.TimeRange, fillMissing *data.FillMissing) (*data.Frame, error) {
 	tsSchema := f.TimeSeriesSchema()
 	if tsSchema.Type == data.TimeSeriesTypeNot {
 		return f, fmt.Errorf("can not fill missing, not timeseries frame")
