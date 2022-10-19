@@ -53,21 +53,21 @@ export class ConfigEditor extends PureComponent<Props, State> {
   };
 
   onUserChange = (event: ChangeEvent<HTMLInputElement>) => {
-    this.onAuthChange(event.target.value, undefined);
+    this.onAuthChange(event.currentTarget.value, undefined);
   };
 
   onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
-    this.onAuthChange(undefined, event.target.value);
+    this.onAuthChange(undefined, event.currentTarget.value);
   };
 
   onAuthChange = (user?: string, password?: string) => {
     const {onOptionsChange, options} = this.props;
     const secureJsonData = (options.secureJsonData || {});
 
-    if (!user) {
+    if (user === undefined) {
       user = options.user;
     }
-    if (!password) {
+    if (password === undefined) {
       password = secureJsonData.password ?? ''
     }
 
