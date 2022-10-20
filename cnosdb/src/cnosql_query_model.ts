@@ -26,7 +26,7 @@ export default class CnosQueryModel {
     target.orderByTime = target.orderByTime || 'ASC';
     target.tags = target.tags || [];
     target.groupBy = target.groupBy || [
-      {type: 'time', params: ['$__interval']},
+      {type: 'time', params: ['1 minute']},
       {type: 'fill', params: ['null']},
     ];
     target.select = target.select || [
@@ -43,13 +43,13 @@ export default class CnosQueryModel {
     this.selectModels = map(this.target.select, (parts: any) => {
       return map(parts, queryPart.create);
     });
+    delete this.target.interval;
+    delete this.target.fill;
     this.groupByParts = map(this.target.groupBy, (part: any) => {
       if (part.type === 'time') {
         // from: GROUP BY time($interval)
         // to: "GROUP BY time", "DATE_BIN(... $interval ...) AS time"
         this.target.interval = part.params[0];
-        part.params[0] = 'time';
-        part.Type = 'field';
       } else if (part.type === 'fill') {
         this.target.fill = part.params[0];
       }
@@ -216,21 +216,17 @@ export default class CnosQueryModel {
 
     if (target.rawQuery) {
       if (this.templateSrv && interpolate) {
-        console.log('Render query using interpolate.');
         return this.templateSrv.replace(target.queryText, this.scopedVars, this.interpolateQueryStr);
       } else {
-        console.log('Render query using raw.');
         return target.queryText ?? '';
       }
     }
-
-    console.log('Render query using MyQuery');
 
     let query = 'SELECT ';
     if (target.interval) {
       query += "DATE_BIN(INTERVAL '" + target.interval + "', time, TIMESTAMP '1970-01-01T00:00:00Z') AS time, ";
     } else {
-      query += 'time';
+      query += 'time, ';
     }
 
     let i, y;
@@ -275,10 +271,6 @@ export default class CnosQueryModel {
       query += ' GROUP BY ' + groupBySection;
     }
 
-    // if (target.fill) {
-    //   query += ' fill(' + target.fill + ')';
-    // }
-
     if (target.orderByTime === 'DESC') {
       query += ' ORDER BY time DESC';
     } else {
@@ -288,8 +280,6 @@ export default class CnosQueryModel {
     if (target.limit) {
       query += ' LIMIT ' + target.limit;
     }
-
-    console.log('Render query result', query);
 
     return query;
   }

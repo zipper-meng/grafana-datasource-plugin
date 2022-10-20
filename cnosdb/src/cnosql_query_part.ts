@@ -42,7 +42,11 @@ function fieldRenderer(part: { params: string[] }, innerExpr: any) {
 }
 
 export function timeRenderer(part: any, innerExpr: string) {
-  return 'time'
+  if (part.params[0]) {
+    return "DATE_BIN(INTERVAL '" + part.params[0] + "', time, TIMESTAMP '1970-01-01T00:00:00Z')";
+  } else {
+    return 'time'
+  }
 }
 
 function replaceAggregationAddStrategy(selectParts: any[], partModel: { def: { type: string } }) {
@@ -188,10 +192,10 @@ register({
       name: 'interval',
       type: 'time',
       // TODO: Use simplified time '1s', '10s', '1m'...
-      options: ['$__interval', '1 second', '10 seconds', '1 minute', '5 minutes', '10 minutes', '15 minutes', '1 hour'],
+      options: ['1 second', '10 seconds', '1 minute', '5 minutes', '10 minutes', '15 minutes', '1 hour'],
     },
   ],
-  defaultParams: ['$__interval'],
+  defaultParams: ['1 minute'],
   renderer: timeRenderer,
 });
 
@@ -214,7 +218,7 @@ register({
 register({
   type: 'tag',
   category: groupByTimeFunctions,
-  params: [{name: 'tag', type: 'string', dynamicLookup: true}],
+  params: [{name: 'tag', type: 'string', dynamicLookup: false}],
   defaultParams: ['tag'],
   renderer: fieldRenderer,
 });

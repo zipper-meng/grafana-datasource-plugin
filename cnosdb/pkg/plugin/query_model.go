@@ -59,8 +59,6 @@ func (query *QueryModel) Introspect() error {
 			// from: GROUP BY time($interval)
 			// to: "GROUP BY time", "DATE_BIN(... $interval ...) AS time"
 			query.Interval = s.Params[0]
-			s.Params[0] = "time"
-			s.Type = "field"
 		} else if s.Type == "fill" {
 			query.Fill = s.Params[0]
 		}
