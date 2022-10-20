@@ -13,7 +13,6 @@ import {VisualQueryEditor} from './VisualQueryEditor';
 type Props = QueryEditorProps<DataSource, CnosQuery, CnosDataSourceOptions>;
 
 export const QueryEditor = ({query, onChange, onRunQuery, datasource}: Props): JSX.Element => {
-  console.log('QueryEditor constructing', query, datasource);
   return (
     <div className={css({display: 'flex'})}>
       <div className={css({flexGrow: 1})}>

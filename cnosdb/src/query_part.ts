@@ -95,7 +95,7 @@ export function functionRenderer(part: any, innerExpr: string) {
     const paramType = part.def.params[index];
     if (paramType.type === 'time') {
       if (value === 'auto') {
-        value = '$__interval';
+        value = '1 minute';
       }
     }
     if (paramType.quote === 'single') {

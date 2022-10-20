@@ -21,21 +21,6 @@ import {TagsSection} from './TagsSection';
 import {PartListSection} from './PartListSection';
 import {InputSection} from './InputSection';
 
-// function getTemplateVariableOptions() {
-//   return (
-//     getTemplateSrv()
-//       .getVariables()
-//       // we make them regex-params, i'm not 100% sure why.
-//       // probably because this way multi-value variables work ok too.
-//       .map((v) => `/^$${v.name}$/`)
-//   );
-// }
-
-// // helper function to make it easy to call this from the widget-render-code
-// function withTemplateVariableOptions(optionsPromise: Promise<string[]>): Promise<string[]> {
-//   return optionsPromise.then((options) => [...getTemplateVariableOptions(), ...options]);
-// }
-
 type Props = {
   query: CnosQuery;
   onChange: (query: CnosQuery) => void;

@@ -31,7 +31,6 @@ export async function getNewGroupByPartOptions(
   query: CnosQuery,
   getTagKeys: () => Promise<string[]>
 ): Promise<Array<SelectableValue<string>>> {
-  const tagKeys = await getTagKeys();
   const queryCopy = {...query};
   const model = new CnosQueryModel(queryCopy);
   const options: Array<SelectableValue<string>> = [];
@@ -41,9 +40,7 @@ export async function getNewGroupByPartOptions(
   if (!model.hasGroupByTime()) {
     options.push(toSelectableValue('time($interval)'));
   }
-  tagKeys.forEach((key) => {
-    options.push(toSelectableValue(`tag(${key})`));
-  });
+  options.push(toSelectableValue('tag(default_tag)'));
   return options;
 }
 

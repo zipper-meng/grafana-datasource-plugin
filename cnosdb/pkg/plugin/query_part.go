@@ -33,7 +33,7 @@ func init() {
 	renders["variance"] = QueryDefinition{Renderer: functionRenderer}
 
 	renders["time"] = QueryDefinition{
-		Renderer: functionRenderer,
+		Renderer: timeRenderer,
 		Params:   []DefinitionParameters{{Name: "interval", Type: "time"}, {Name: "offset", Type: "time"}},
 	}
 
@@ -57,13 +57,15 @@ func fieldRenderer(query *QueryModel, queryContext *backend.QueryDataRequest, pa
 	return fmt.Sprintf(`"%s"`, part.Params[0])
 }
 
-func functionRenderer(query *QueryModel, queryContext *backend.QueryDataRequest, part *SelectItem, innerExpr string) string {
-	for i, param := range part.Params {
-		if part.Type == "time" && param == "auto" {
-			part.Params[i] = "$__interval"
-		}
+func timeRenderer(query *QueryModel, queryContext *backend.QueryDataRequest, part *SelectItem, innerExpr string) string {
+	if query.Interval == "" {
+		return "time"
+	} else {
+		return fmt.Sprintf("DATE_BIN(INTERVAL '%s', time, TIMESTAMP '1970-01-01T00:00:00Z')", query.Interval)
 	}
+}
 
+func functionRenderer(query *QueryModel, queryContext *backend.QueryDataRequest, part *SelectItem, innerExpr string) string {
 	if innerExpr != "" {
 		part.Params = append([]string{innerExpr}, part.Params...)
 	}
