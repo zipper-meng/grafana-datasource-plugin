@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -44,5 +45,11 @@ func ParseIntervalString(intervalStr string) time.Duration {
 	} else {
 		return 0
 	}
+}
 
+func typeof(value interface{}) string {
+	if value != nil {
+		return fmt.Sprintf("%T", value)
+	}
+	return "null"
 }

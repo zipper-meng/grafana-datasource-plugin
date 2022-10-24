@@ -91,6 +91,12 @@ func (d *CnosDatasource) QueryData(ctx context.Context, req *backend.QueryDataRe
 }
 
 func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryDataRequest, query backend.DataQuery) backend.DataResponse {
+	defer func() {
+		if err := recover(); err != nil {
+			log.DefaultLogger.Error("Something went wrong", "err", err)
+		}
+	}()
+
 	response := backend.DataResponse{}
 
 	auth, exists := queryContext.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["auth"]
@@ -99,7 +105,7 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 		return response
 	}
 
-	log.DefaultLogger.Info("CnosDB query data", "auth", auth, "json", string(query.JSON))
+	log.DefaultLogger.Debug("CnosDB query data", "auth", auth, "json", string(query.JSON))
 
 	var queryModel QueryModel
 	var err error
@@ -113,7 +119,7 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 	}
 
 	dbgQueryModel, _ := json.Marshal(queryModel)
-	log.DefaultLogger.Info("CnosDB query model", "model", string(dbgQueryModel))
+	log.DefaultLogger.Debug("CnosDB query model", "model", string(dbgQueryModel))
 
 	// Build sql
 	sql, err := queryModel.Build(queryContext)
@@ -121,7 +127,7 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 		response.Error = err
 		return response
 	}
-	log.DefaultLogger.Info("CnosDB query sql", "sql", sql)
+	log.DefaultLogger.Debug("CnosDB query sql", "sql", sql)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", d.url+"/api/v1/sql?db="+d.database, strings.NewReader(sql))
 	if err != nil {
@@ -159,7 +165,7 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 			response.Error = err
 			return response
 		}
-		log.DefaultLogger.Info("CnosDB query response rows", "rows", resRows)
+		log.DefaultLogger.Debug("CnosDB query response rows", "rows", resRows)
 	} else {
 		resultNotEmpty = false
 	}
@@ -167,8 +173,9 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 	// Create data frame response.
 	frame := data.NewFrame("response")
 	timeArray := make([]time.Time, len(resRows))
-	valueArrayMap := make(map[string][]*float64)
+	valueArrayMap := make(map[string]Array)
 	var columnArray []string
+	var columnTypes []string
 
 	if resultNotEmpty {
 		for i, row := range resRows {
@@ -183,13 +190,30 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 					timeArray[i] = parsedTime
 				} else {
 					valArr, ok := valueArrayMap[col]
+					valType := typeof(val)
 					if !ok {
-						valArr = make([]*float64, len(resRows))
+						valArr = Array{
+							stringArray:  make([]*string, len(resRows)),
+							float64Array: make([]*float64, len(resRows)),
+							boolArray:    make([]*bool, len(resRows)),
+						}
 						columnArray = append(columnArray, col)
+						columnTypes = append(columnTypes, valType)
 						valueArrayMap[col] = valArr
 					}
-					v := val.(float64)
-					valArr[i] = &v
+					switch valType {
+					case "float64":
+						v := val.(float64)
+						valArr.float64Array[i] = &v
+					case "string":
+						v := val.(string)
+						valArr.stringArray[i] = &v
+					case "bool":
+						v := val.(bool)
+						valArr.boolArray[i] = &v
+					default:
+						log.DefaultLogger.Error("Unexpected value type", "value", val, "value_type", valType)
+					}
 				}
 			}
 		}
@@ -199,13 +223,22 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 	frame.Fields = append(frame.Fields,
 		data.NewField("time", nil, timeArray),
 	)
-	for _, col := range columnArray {
-		frame.Fields = append(frame.Fields, data.NewField(col, nil, valueArrayMap[col]))
+	for i, col := range columnArray {
+		switch columnTypes[i] {
+		case "float64":
+			frame.Fields = append(frame.Fields, data.NewField(col, nil, valueArrayMap[col].float64Array))
+		case "string":
+			frame.Fields = append(frame.Fields, data.NewField(col, nil, valueArrayMap[col].stringArray))
+		case "bool":
+			frame.Fields = append(frame.Fields, data.NewField(col, nil, valueArrayMap[col].boolArray))
+		default:
+			log.DefaultLogger.Info("Unexpected column type", "column", col)
+		}
 	}
 
 	// Resample if needed
 	if resultNotEmpty && queryModel.Fill != "" {
-		log.DefaultLogger.Info("Fill detected, need Resample")
+		log.DefaultLogger.Debug("Fill detected, need Resample")
 		var fillMode data.FillMode
 		var fillValue float64 = 0
 		switch strings.ToLower(queryModel.Fill) {
@@ -223,16 +256,12 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 				return response
 			}
 		}
-		log.DefaultLogger.Info("Resample-1", fmt.Sprintf("fillMode: %d, fillValue: %f", fillMode, fillValue))
 		interval := ParseIntervalString(queryModel.Interval)
-		log.DefaultLogger.Info("Resample-2", fmt.Sprintf("interval: %s -> %d", queryModel.Interval, interval))
 		if interval != 0 {
-			log.DefaultLogger.Info("Begin Resample")
 			frame, err = Resample(frame, interval, query.TimeRange, &data.FillMissing{
 				Mode:  fillMode,
 				Value: fillValue,
 			})
-			log.DefaultLogger.Info("End Resample")
 			if err != nil {
 				log.DefaultLogger.Error("Failed to Resample dataframe", "err", err)
 				frame.AppendNotices(data.Notice{Text: "Failed to Resample dataframe", Severity: data.NoticeSeverityWarning})
