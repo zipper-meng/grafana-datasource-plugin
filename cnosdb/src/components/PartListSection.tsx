@@ -103,18 +103,6 @@ const Part = ({name, params, onChange, onRemove}: PartProps): JSX.Element => {
                 onParamChange(unwrap(v.value), i);
               }}
             />
-            {/*<Input*/}
-            {/*  type="text"*/}
-            {/*  placeholder="Field"*/}
-            {/*  value={currentValue}*/}
-            {/*  width={10}*/}
-            {/*  onChange={(e) => {*/}
-            {/*    setCurrentValue(e.currentTarget.value);*/}
-            {/*  }}*/}
-            {/*  onBlur={(e) => {*/}
-            {/*    onParamChange(unwrap(e.currentTarget.value), i);*/}
-            {/*  }}*/}
-            {/*/>*/}
             {!isLast && ','}
           </React.Fragment>
         );
