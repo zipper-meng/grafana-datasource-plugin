@@ -1,42 +1,32 @@
-# Grafana Data Source Plugin Template
+## CnosDB data source for Grafana
 
-[![Build](https://github.com/grafana/grafana-starter-datasource/workflows/CI/badge.svg)](https://github.com/grafana/grafana-starter-datasource/actions?query=workflow%3A%22CI%22)
+This document describes how to install and configure CnosDB data source plugin for Grafana, and to query and visualize data from CnosDB.
+## Installation
 
-This template is a starting point for building Grafana Data Source Plugins
+1. Navigate to **Configurations / Plugins**, search `CnosDB` and then click it.
 
-## What is Grafana Data Source Plugin?
+![install_1](https://raw.githubusercontent.com/cnosdb/grafana-datasource-plugin/master/assets/install_1.png)
 
-Grafana supports a wide range of data sources, including Prometheus, MySQL, and even Datadog. There’s a good chance you can already visualize metrics from the systems you have set up. In some cases, though, you already have an in-house metrics solution that you’d like to add to your Grafana dashboards. Grafana Data Source Plugins enables integrating such solutions with Grafana.
+1. Click `Create a CnosDB data source` button.
 
-## Getting started
+![install_2](https://raw.githubusercontent.com/cnosdb/grafana-datasource-plugin/master/assets/install_2.png)
 
-1. Install dependencies
+3. Configure the connection options.
 
-   ```bash
-   yarn install
-   ```
+![configure_1](https://raw.githubusercontent.com/cnosdb/grafana-datasource-plugin/master/assets/configure_1.png)
 
-2. Build plugin in development mode or run in watch mode
+4. Click `Save & test`, if it displays `"Data source is working"` means CnosDB data source connected successfully.
 
-   ```bash
-   yarn dev
-   ```
+![configure_1](https://raw.githubusercontent.com/cnosdb/grafana-datasource-plugin/master/assets/configure_2.png)
 
-   or
+## Usage - Dashboard
 
-   ```bash
-   yarn watch
-   ```
+1. Navigate to **Dashboards**, click `New Dashboard` button, then click `Add a new panel` button. We see visual query editor now, you can also enter the raw sql eidte mode by clicking this button.
 
-3. Build plugin in production mode
+**Visual query editor**
 
-   ```bash
-   yarn build
-   ```
+![create_pannel_1](https://raw.githubusercontent.com/cnosdb/grafana-datasource-plugin/master/assets/create_pannel_1.png)
 
-## Learn more
+**Raw query editor**
 
-- [Build a data source plugin tutorial](https://grafana.com/tutorials/build-a-data-source-plugin)
-- [Grafana documentation](https://grafana.com/docs/)
-- [Grafana Tutorials](https://grafana.com/tutorials/) - Grafana Tutorials are step-by-step guides that help you make the most of Grafana
-- [Grafana UI Library](https://developers.grafana.com/ui) - UI components to help you build interfaces using Grafana Design System
+![create_pannel_2](https://raw.githubusercontent.com/cnosdb/grafana-datasource-plugin/master/assets/create_pannel_2.png)
