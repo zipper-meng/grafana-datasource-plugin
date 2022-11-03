@@ -1,11 +1,12 @@
 import {css} from '@emotion/css';
-import React from 'react';
+import React, {useMemo} from 'react';
 
 import {GrafanaTheme2} from '@grafana/data';
+import {getTemplateSrv} from '@grafana/runtime';
 import {InlineLabel, SegmentSection, useStyles2} from '@grafana/ui';
 
-import {DataSource} from '../datasource';
-import {CnosQuery} from '../types';
+import {CnosDataSource} from '../datasource';
+import {CnosQuery, TagItem} from '../types';
 import {
   addNewGroupByPart,
   addNewSelectPart,
@@ -15,41 +16,88 @@ import {
   removeGroupByPart,
   removeSelectPart,
 } from '../query_utils';
+import {getAllTables, getFieldNamesFromTable, getTagKeysFromTable} from '../meta_query';
 import {getNewGroupByPartOptions, getNewSelectPartOptions, makePartList} from './part_list_utils';
 import {FromSection} from './FromSection';
 import {TagsSection} from './TagsSection';
 import {PartListSection} from './PartListSection';
 import {InputSection} from './InputSection';
+import {OrderByTimeSection} from "./OrderBySection";
 
 type Props = {
   query: CnosQuery;
   onChange: (query: CnosQuery) => void;
   onRunQuery: () => void;
-  datasource: DataSource;
+  datasource: CnosDataSource;
 };
 
+function getTemplateVariableOptions() {
+  return (
+    getTemplateSrv()
+      .getVariables()
+      .map((v) => `/^$${v.name}$/`)
+  );
+}
+
+// helper function to make it easy to call this from the widget-render-code
+function withTemplateVariableOptions(optionsPromise: Promise<string[]>): Promise<string[]> {
+  return optionsPromise.then((options) => [...getTemplateVariableOptions(), ...options]);
+}
+
 export const VisualQueryEditor = (props: Props): JSX.Element => {
-  const styles = useStyles2(getStyles);
+  const styles = useStyles2((theme: GrafanaTheme2) => {
+    return {
+      inlineLabel: css`
+      color: ${theme.colors.primary.text};
+    `,
+    };
+  });
   const query = normalizeQuery(props.query);
-  const {table, rawTagsExpr} = query;
+  const {datasource} = props;
+  const {table} = query;
 
-  const selectLists = (query.select ?? []).map((sel) => makePartList(sel, new Map([
-    [
-      'field_0',
-      () => {
-        return Promise.resolve([])
-      },
-    ],
-  ])));
+  const allTagKeys = useMemo(() => {
+    return getTagKeysFromTable(table, [], datasource).then((tags) => {
+      return new Set(tags);
+    });
+  }, [table, datasource]);
 
-  const groupByList = makePartList(query.groupBy ?? [], new Map([
-    [
-      'tag_0',
-      () => {
-        return Promise.resolve([])
-      },
-    ],
-  ]));
+  const selectLists = useMemo(() => {
+    const selectPartOptions = new Map([
+      [
+        'field_0',
+        () => {
+          return table !== undefined
+            ? getFieldNamesFromTable(table, datasource)
+            : Promise.resolve([]);
+        },
+      ],
+    ]);
+    return (query.select ?? []).map((sel) => makePartList(sel, selectPartOptions));
+  }, [table, query.select, datasource]);
+
+  const getTagKeys = useMemo(() => {
+    return () =>
+      allTagKeys.then((keys) =>
+        getTagKeysFromTable(table, filterTags(query.tags ?? [], keys), datasource)
+      );
+  }, [table, query.tags, datasource, allTagKeys]);
+
+  function filterTags(parts: TagItem[], allTagKeys: Set<string>): TagItem[] {
+    return parts.filter((t) => allTagKeys.has(t.key));
+  }
+
+  const groupByList = makePartList(
+    query.groupBy ?? [],
+    new Map([
+      [
+        'tag_0',
+        () => {
+          return Promise.resolve([]);
+        },
+      ],
+    ])
+  );
 
   const onAppliedChange = (newQuery: CnosQuery) => {
     props.onChange(newQuery);
@@ -63,10 +111,10 @@ export const VisualQueryEditor = (props: Props): JSX.Element => {
     });
   };
 
-  const handleTagsSectionChange = (tagExpr: string) => {
+  const handleTagsSectionChange = (tags: TagItem[]) => {
     onAppliedChange({
       ...query,
-      rawTagsExpr: tagExpr,
+      tags: tags.length === 0 ? undefined : tags,
     });
   };
 
@@ -76,11 +124,18 @@ export const VisualQueryEditor = (props: Props): JSX.Element => {
         <FromSection
           table={table}
           onChange={handleFromSectionChange}
+          getTableOptions={(filter) =>
+            withTemplateVariableOptions(getAllTables(filter === '' ? undefined : filter, datasource))
+          }
         />
         <InlineLabel width="auto" className={styles.inlineLabel}>
           WHERE
         </InlineLabel>
-        <TagsSection tagExpr={rawTagsExpr} onTagExprChange={handleTagsSectionChange}/>
+        <TagsSection
+          tags={query.tags ?? []}
+          onChange={handleTagsSectionChange}
+          getTagKeyOptions={getTagKeys}
+        />
       </SegmentSection>
       {selectLists.map((sel, index) => (
         <SegmentSection key={index} label={index === 0 ? 'SELECT' : ''} fill={true}>
@@ -124,20 +179,16 @@ export const VisualQueryEditor = (props: Props): JSX.Element => {
             onAppliedChange({...query, limit});
           }}
         />
+        <InlineLabel width="auto" className={styles.inlineLabel}>
+          ORDER BY TIME
+        </InlineLabel>
+        <OrderByTimeSection
+          value={query.orderByTime === 'DESC' ? 'DESC' : 'ASC'}
+          onChange={(v) => {
+            onAppliedChange({ ...query, orderByTime: v });
+          }}
+        />
       </SegmentSection>
-    </div>
-  );
-};
-
-export const SelectSection = (): JSX.Element => {
-  return (
-    <div className="gf-form-inline">
-      <div className="gf-form">
-        <SegmentSection key="kEY" label="LABEL" fill={true}>
-          {/* <div className={cx('gf-form-label', css({ paddingLeft: '0' }))}></div> */}
-          {/*<Segment Component={AddButton} onChange={({ value }) => action('New value added')(value)} options={options} />*/}
-        </SegmentSection>
-      </div>
     </div>
   );
 };
@@ -151,13 +202,6 @@ export const SelectSection = (): JSX.Element => {
 //   > Relation: > [ SelectFieldPart, OperatorOption, SelectFieldPart ]
 //     => sql: select ("$field" operator "$field") as "$alias"
 //     => sql: select (function("$field") operator function("$field")) as "$alias"
-export const SelectField = (): JSX.Element => {
-  return (
-    <div>
-      <InlineLabel width={7}>SELECT</InlineLabel>
-    </div>
-  );
-};
 
 // GroupBySection:
 // > GroupByPart: Field, Interval
@@ -165,31 +209,9 @@ export const SelectField = (): JSX.Element => {
 //   => sql: group by "$field"
 //   > Interval $interval: customized | $string in IntervalOptions
 //   => sql: group by time($imterval)
-export const GroupBySection = (): JSX.Element => {
-  return (
-    <div>
-      <InlineLabel width={14}>GROUP BY</InlineLabel>
-    </div>
-  );
-};
 
 // LimitSection:
 // > ByLimit: $limit: number
 //   => sql: limit limit
 // > ByOffsetLimit: $offset, $limit
 //   => sql: $offset, $limit
-export const LimitSection = (): JSX.Element => {
-  return (
-    <div>
-      <InlineLabel width={14}>LIMIT</InlineLabel>
-    </div>
-  );
-};
-
-function getStyles(theme: GrafanaTheme2) {
-  return {
-    inlineLabel: css`
-      color: ${theme.colors.primary.text};
-    `,
-  };
-}

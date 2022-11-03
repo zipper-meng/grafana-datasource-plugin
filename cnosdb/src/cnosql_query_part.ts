@@ -113,7 +113,7 @@ register({
   type: 'field',
   addStrategy: addFieldStrategy,
   category: categories.Fields,
-  params: [{type: 'field'}],
+  params: [{type: 'field', dynamicLookup: true}],
   defaultParams: ['default_field'],
   renderer: fieldRenderer,
 });
@@ -218,7 +218,7 @@ register({
 register({
   type: 'tag',
   category: groupByTimeFunctions,
-  params: [{name: 'tag', type: 'string', dynamicLookup: false}],
+  params: [{name: 'tag', type: 'string', dynamicLookup: true}],
   defaultParams: ['tag'],
   renderer: fieldRenderer,
 });

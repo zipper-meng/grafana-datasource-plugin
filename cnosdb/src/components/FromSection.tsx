@@ -1,36 +1,29 @@
 import React from 'react';
+import { toSelectableValue } from 'utils';
 
 import {Seg} from "./Seg";
 
 type FromSectionProps = {
-  onChange: (table: string | undefined) => void;
   table: string | undefined;
+  onChange: (table: string | undefined) => void;
+  getTableOptions: (filter: string) => Promise<string[]>;
 };
 
 // TODO Use <select/> to get FROM table.
-export const FromSection = ({table, onChange}: FromSectionProps): JSX.Element => {
+export const FromSection = ({table, onChange, getTableOptions}: FromSectionProps): JSX.Element => {
+  const loadFromOptions = async (filter: string) => {
+    const tables = await getTableOptions(filter);
+    return tables.map(toSelectableValue);
+  };
   return (
     <Seg
       allowCustomValue
       value={table ?? 'default_table'}
+      loadOptions={loadFromOptions}
       filterByLoadOptions
       onChange={(v) => {
         onChange(v.value);
       }}
     />
-    // <Input
-    //   type="text"
-    //   placeholder="table"
-    //   value={table}
-    //   width={10}
-    //   onChange={(e) => {
-    //     console.log("onChange", e.currentTarget.value)
-    //     setCurrentValue(e.currentTarget.value);
-    //   }}
-    //   onBlur={(_) => {
-    //     console.log("onBlur", currentValue)
-    //     onChange(currentValue);
-    //   }}
-    // />
   );
 };
