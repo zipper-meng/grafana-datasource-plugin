@@ -3,14 +3,14 @@ import React from 'react';
 
 import {QueryEditorProps} from '@grafana/data';
 
-import {DataSource} from '../datasource';
+import {CnosDataSource} from '../datasource';
 import {CnosDataSourceOptions, CnosQuery} from '../types';
 import {buildRawQuery} from '../query_utils';
 import {RawQueryEditor} from './RawQueryEditor';
 import {QueryEditorModeSwitcher} from './QueryEditorModeSwitcher';
 import {VisualQueryEditor} from './VisualQueryEditor';
 
-type Props = QueryEditorProps<DataSource, CnosQuery, CnosDataSourceOptions>;
+type Props = QueryEditorProps<CnosDataSource, CnosQuery, CnosDataSourceOptions>;
 
 export const QueryEditor = ({query, onChange, onRunQuery, datasource}: Props): JSX.Element => {
   return (

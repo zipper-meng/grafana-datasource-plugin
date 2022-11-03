@@ -23,18 +23,16 @@ const className = cx(
 type Props = {
   value: Mode;
   onChange: (value: Mode) => void;
-  inputId?: string;
 };
 
 // OrderBySection:
 // > Tag $tag: $column in TagOptions
 // > $order: > [ ascending, descending ]
 //   => sql: order by $tag $order
-export const OrderBySection = ({value, onChange, inputId}: Props): JSX.Element => {
+export const OrderByTimeSection = ({value, onChange}: Props): JSX.Element => {
   return (
     <>
       <Select<Mode>
-        inputId={inputId}
         className={className}
         onChange={(v) => {
           onChange(unwrap(v.value));

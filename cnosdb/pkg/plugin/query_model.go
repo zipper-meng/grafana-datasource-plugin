@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -75,11 +74,6 @@ func (query *QueryModel) Introspect() error {
 	return nil
 }
 
-var (
-	regexpOperatorPattern    = regexp.MustCompile(`^\/.*\/$`)
-	regexpMeasurementPattern = regexp.MustCompile(`^\/.*\/$`)
-)
-
 func (query *QueryModel) Build(queryContext *backend.QueryDataRequest) (string, error) {
 	var res string
 	if query.RawQuery && query.QueryText != "" {
@@ -132,13 +126,52 @@ func (query *QueryModel) renderMeasurement() string {
 	return fmt.Sprintf(` FROM %s`, query.Table)
 }
 
+func (query *QueryModel) renderTags() []string {
+	var res []string
+	for i, tag := range query.Tags {
+		str := ""
+
+		if i > 0 {
+			if tag.Condition == "" {
+				str += "AND"
+			} else {
+				str += tag.Condition
+			}
+			str += " "
+		}
+
+		// If the operator is missing we fall back to sensible defaults
+		if tag.Operator == "" {
+			tag.Operator = "="
+		}
+
+		var textValue string
+		switch tag.Operator {
+		case "<", ">":
+			textValue = tag.Value
+		default:
+			textValue = fmt.Sprintf("'%s'", strings.ReplaceAll(tag.Value, `\`, `\\`))
+		}
+
+		res = append(res, fmt.Sprintf(`%s"%s" %s %s`, str, tag.Key, tag.Operator, textValue))
+	}
+
+	return res
+}
+
 func (query *QueryModel) renderWhereClause() string {
 	res := " WHERE "
-	// TODO: Implement `DESCRIBE TABLE` or `SHOW TAG KEYS`
-	// to use []TagItem to generate WHERE clause
-	conditions := query.RawTagsExpr
-	if len(conditions) > 0 {
-		res += "(" + conditions + ")"
+	if len(query.RawTagsExpr) > 0 {
+		res += "(" + query.RawTagsExpr + ")"
+		res += " AND "
+	}
+	tagsExpr := query.renderTags()
+	if len(tagsExpr) > 0 {
+		if len(tagsExpr) > 1 {
+			res += "(" + strings.Join(tagsExpr, " ") + ")"
+		} else {
+			res += tagsExpr[0]
+		}
 		res += " AND "
 	}
 

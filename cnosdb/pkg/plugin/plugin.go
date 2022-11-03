@@ -143,24 +143,33 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 		response.Error = err
 		return response
 	}
+
 	defer func() {
 		if err := res.Body.Close(); err != nil {
 			log.DefaultLogger.Warn("Failed to close response body", "err", err)
 		}
 	}()
+
+	respData, _ := io.ReadAll(res.Body)
+
 	if res.StatusCode/100 != 2 {
-		response.Error = fmt.Errorf("CnosDB returned error status: %s", res.Status)
+		var errMsg map[string]string
+		respError := fmt.Sprintf("CnosDB returned error status: %s", res.Status)
+		if err := json.NewDecoder(bytes.NewReader(respData)).Decode(&errMsg); err != nil {
+			log.DefaultLogger.Error("Failed to decode request jsonData", "err", err)
+			response.Error = fmt.Errorf("%s. ()Faield to parse response: %s", respError, err)
+			return response
+		}
+		response.Error = fmt.Errorf("%s. (%s)%s", respError, errMsg["error_code"], errMsg["error_message"])
 		return response
 	}
 
-	queryData, _ := io.ReadAll(res.Body)
-
-	log.DefaultLogger.Info("CnosDB query response", "response", string(queryData))
+	log.DefaultLogger.Debug("CnosDB query response", "response", string(respData))
 
 	var resRows []map[string]interface{}
 	var resultNotEmpty bool = true
-	if len(queryData) > 0 {
-		if err := json.NewDecoder(bytes.NewReader(queryData)).Decode(&resRows); err != nil {
+	if len(respData) > 0 {
+		if err := json.NewDecoder(bytes.NewReader(respData)).Decode(&resRows); err != nil {
 			log.DefaultLogger.Error("Failed to decode request jsonData", "err", err)
 			response.Error = err
 			return response
@@ -232,7 +241,7 @@ func (d *CnosDatasource) query(ctx context.Context, queryContext *backend.QueryD
 		case "bool":
 			frame.Fields = append(frame.Fields, data.NewField(col, nil, valueArrayMap[col].boolArray))
 		default:
-			log.DefaultLogger.Info("Unexpected column type", "column", col)
+			log.DefaultLogger.Debug("Unexpected column type", "column", col)
 		}
 	}
 

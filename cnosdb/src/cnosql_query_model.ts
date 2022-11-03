@@ -171,15 +171,11 @@ export default class CnosQueryModel {
     }
 
     // quote value unless regex
-    if (operator !== '=~' && operator !== '!~') {
-      if (this.templateSrv && interpolate) {
-        value = this.templateSrv.replace(value, this.scopedVars);
-      }
-      if (operator !== '>' && operator !== '<') {
-        value = "'" + value.replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + "'";
-      }
-    } else if (this.templateSrv && interpolate) {
-      value = this.templateSrv.replace(value, this.scopedVars, 'regex');
+    if (this.templateSrv && interpolate) {
+      value = this.templateSrv.replace(value, this.scopedVars);
+    }
+    if (operator !== '>' && operator !== '<') {
+      value = "'" + value.replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + "'";
     }
 
     return str + '"' + tag.key + '" ' + operator + ' ' + value;
